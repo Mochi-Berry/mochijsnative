@@ -1,0 +1,19 @@
+{
+  "layer": "native_core",
+  "name": "mochijsnative",
+  "version": "0.1.0",
+  "abi_version": "MBC1",
+  "entry_point": "mbjs_init_module",
+  "status": "broken",
+  "targets": {
+    "x86_64-windows": "./lib/mochijsnative_x86_64.dll"
+  },
+  "exports": [],
+  "sources": [
+    "src/mochijsnative.c"
+  ],
+  "headers": [
+    "include/mochijsnative.h",
+    "include/mochijsnative_abi.h"
+  ]
+}

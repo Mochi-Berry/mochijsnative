@@ -1,0 +1,12 @@
+{
+  "name": "mochijsnative",
+  "version": "0.1.0",
+  "description": "AOT/JIT native probe helper \u2014 FAILS mbjs_call_module init on the current engine build",
+  "main": "./node_modules/src/index.js",
+  "exports": {
+    ".": "./node_modules/src/index.js",
+    "./manifest": "./manifest.json"
+  },
+  "license": "MIT",
+  "private": false
+}
