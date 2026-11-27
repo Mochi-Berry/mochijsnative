@@ -1,6 +1,6 @@
 #include "mbjs_runtime.h"
 #include "mbjs-jit.h"
-#include "../libdynalib/dynalib.h"
+#include "dynalib.h"
 
 #include <stdio.h>
 #include <stdlib.h>

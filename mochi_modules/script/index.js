@@ -4,7 +4,7 @@
  * the C ABI. Prefer native-first: keep heavy work in C, keep this file a
  * 1:1 binding (no object-wrapping layer).
  */
-import { loadNative } from '../../mochinode/index.js';
+import { loadNative } from '../../../node_modules/mochinode/index.js';
 
 let _m = null;
 async function ensure() {
