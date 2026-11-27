@@ -77,6 +77,13 @@ static const char *api_resolve(void)
         if (!p) return name;                                                   \
         memcpy(&api.field, &p, sizeof(p));                                     \
     } while (0)
+/* Optional symbol: a missing one is fine — the JIT API degrades gracefully
+ * (engine builds without a JIT backend simply report "JIT unavailable"). */
+#define API_SYM_OPT(field, name)                                               \
+    do {                                                                       \
+        p = host_symbol(name);                                                 \
+        if (p) memcpy(&api.field, &p, sizeof(p));                              \
+    } while (0)
 
     API_SYM(NewRuntime, "MBJS_NewRuntime");
     API_SYM(FreeRuntime, "MBJS_FreeRuntime");
@@ -113,14 +120,14 @@ static const char *api_resolve(void)
     API_SYM(StdLoopOnce, "mbjs_std_loop_once");
     API_SYM(StdAwait, "mbjs_std_await");
     API_SYM(StdDumpError, "mbjs_std_dump_error");
-    API_SYM(JitNew, "mbjs_jit_new");
-    API_SYM(JitFree, "mbjs_jit_free");
-    API_SYM(JitBackendName, "mbjs_jit_backend_name");
-    API_SYM(JitLastError, "mbjs_jit_last_error");
-    API_SYM(JitCompile, "mbjs_jit_compile");
-    API_SYM(JitCall, "mbjs_jit_call");
-    API_SYM(JitCleanupAll, "mbjs_jit_cleanup_all");
-    API_SYM(JitStats, "mbjs_jit_stats");
+    API_SYM_OPT(JitNew, "mbjs_jit_new");
+    API_SYM_OPT(JitFree, "mbjs_jit_free");
+    API_SYM_OPT(JitBackendName, "mbjs_jit_backend_name");
+    API_SYM_OPT(JitLastError, "mbjs_jit_last_error");
+    API_SYM_OPT(JitCompile, "mbjs_jit_compile");
+    API_SYM_OPT(JitCall, "mbjs_jit_call");
+    API_SYM_OPT(JitCleanupAll, "mbjs_jit_cleanup_all");
+    API_SYM_OPT(JitStats, "mbjs_jit_stats");
 
 #undef API_SYM
     return NULL;
@@ -1236,6 +1243,10 @@ static MBJSValue mn_jit_new(MBJSContext *ctx, MBJSValueConst this_val,
     int hot = 0;
     int slot;
     (void)this_val;
+    if (!api.JitNew) {
+        set_error("JIT backend unavailable in this engine build");
+        return rt.NewBigUint64(ctx, (uint64_t)(int64_t)-1);
+    }
     if (argc > 0) arg_int(ctx, argv[0], &backend);
     if (argc > 5) arg_int(ctx, argv[5], &hot);
     memset(&opts, 0, sizeof(opts));
