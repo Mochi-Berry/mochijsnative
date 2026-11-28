@@ -8,7 +8,7 @@ drive a JIT backend — all without touching the engine source.
 **MochiBerry module** — one package, one repo: the JS face and native plugin
 both live under repo-root `mochi_modules/mochijsnative/`; `node_modules/`
 contains only compatibility shims and the `mochinode` helper packages.
-Status: `verified` · version `0.3.0` · native entry `mbjs_init_module()`.
+Status: `verified` · version `0.4.0` · native entry `mbjs_init_module()`.
 
 ```
 mochijsnative/
@@ -40,9 +40,10 @@ make ENGINE_INC=E:/bcf/mochiberry \
 The native source bundles `libdynalib` (dynalib.c/dynalib_abi.c/
 dynalib_trampoline.c) so the trampoline/ABI parser is self-contained; the
 plugin resolves every `MBJS_*` symbol from the host engine at load time
-(never links `mbjs.exe`). JIT and the enriched array/object/ArrayBuffer API
-are optional: `engineCap(name)` / `engineCaps()` report what the running
-engine actually exports.
+(never links `mbjs.exe`). JIT and every enriched API group (array/object,
+runtime state, atoms, conversions, constructors, promises, symbols,
+descriptors) are optional: `engineCap(name)` / `engineCaps()` report what the
+running engine actually exports.
 
 ## Meta-programming ABI (JS face)
 
@@ -74,20 +75,26 @@ ctx.close(); rt.close();
 
 `Runtime`/`Context`/`Value` give full runtime control (eval, module eval,
 JSON parse, get/set globals, call, invoke, await, loop, exception, std).
-Version 0.3.0 adds `arrayNew/arrayLength/arrayGet/arraySet`, `getProp/
+Version 0.3.0 added `arrayNew/arrayLength/arrayGet/arraySet`, `getProp/
 setProp/getPropValue/setPropValue/defineProp`, `arrayBufferCopy/
-arrayBufferData/arrayBufferSize`, plus `engineCap/engineCaps`. The top-level
-face also exports `ffi`/`bind`/`call`/`callOnce` and a `mochiberry` namespace.
+arrayBufferData/arrayBufferSize`, plus `engineCap/engineCaps`. Version 0.4.0
+adds 44 more runtime-control exports: runtime info/GC/dump flags/opaque/
+memory accounting, exception/conversion helpers, atoms, `eval2`/`evalThis`,
+constructors, equality family, property descriptors, promise state/result,
+settled promises, and public/private symbols. The top-level face also exports
+`ffi`/`bind`/`call`/`callOnce` and a `mochiberry` namespace.
 
 ## Verified (measured)
 
 Run on the export-enabled `mbjs.new.exe` engine build:
 
-- `selftest/mochijsnative.js` → **30/30 ALL OK** (native + root-level JS face):
-  version/abi, engine exports enumerated, `MBJS_NewRuntime` address resolved,
-  `Context.eval` = 42, global get/set, `JSON.parse` roundtrip, native
-  array get/set, `defineProp` + `getProp`, value marshalling, bits roundtrip,
-  `Context.await`, `contextStd()`, and `detectModule`.
+- `selftest/mochijsnative.js` → **52/52 ALL OK** (native + root-level JS face):
+  version/abi, engine exports enumerated, `MBJS_NewRuntime` address
+  resolved, `Context.eval` = 42, global get/set, `JSON.parse` roundtrip,
+  native array get/set, `defineProp` + `getProp`, runtime info/GC/memory
+  accounting, conversions, atoms, `eval2`/`evalThis`, constructors, property
+  descriptors, promise state/result, symbols, exceptions, value marshalling,
+  bits roundtrip, `Context.await`, `contextStd()`, and `detectModule`.
 - Known engine limitation (honest): `MBJS_DetectModule` is a stub in some
   engine builds — it returns `true` for every source string.
 

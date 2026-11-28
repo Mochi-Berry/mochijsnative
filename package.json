@@ -1,6 +1,6 @@
 {
   "name": "mochijsnative",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Native-first meta-programming bridge for MochiBerry (JS to engine context/value/symbol APIs).",
   "main": "./mochi_modules/mochijsnative/script/index.js",
   "exports": {

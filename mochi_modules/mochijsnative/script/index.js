@@ -2,12 +2,14 @@ import { nativeHandle as native, version, engineVersion, abi, symbols } from './
 import { build, main } from './build.js';
 import { Value, valueFromJS, Context, Runtime, Jit, exportNames, exportSignature,
          ENGINE_CAPS, engineCaps, hasEngineCap, detectModule,
+         packageName, baseVersion, baseDate, isPromise, freePropertyEnum,
          bitsToNumber, numberToBits } from './deep.js';
 
 export { build, main };
 export { nativeHandle, version, engineVersion, abi, symbols } from './native.js';
 export { Value, valueFromJS, Context, Runtime, Jit, exportNames, exportSignature,
          ENGINE_CAPS, engineCaps, hasEngineCap, detectModule,
+         packageName, baseVersion, baseDate, isPromise, freePropertyEnum,
          bitsToNumber, numberToBits } from './deep.js';
 
 export function hostBase() {
@@ -105,6 +107,11 @@ export default {
     ENGINE_CAPS,
     engineCaps,
     hasEngineCap,
+    packageName,
+    baseVersion,
+    baseDate,
+    isPromise,
+    freePropertyEnum,
     bitsToNumber,
     numberToBits
 };

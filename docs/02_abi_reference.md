@@ -1,7 +1,7 @@
 # 02 — ABI Reference (mochijsnative)
 
 - Native entry point: `mbjs_init_module()`
-- ABI version: `MBC1` · module version: `0.3.0`
+- ABI version: `MBC1` · module version: `0.4.0` · runtime exports: 102
 - Header ABI:
   - `mochi_modules/mochijsnative/include/mochijsnative.h`
   - `mochi_modules/mochijsnative/include/mochijsnative_abi.h`
@@ -24,7 +24,21 @@ All exports are registered by `mochijsnative.c` through
   `valueSetProp`, `getPropValue`, `setPropValue`, `defineProp`, `jsonParse`
 - Arrays/ArrayBuffers: `arrayNew`, `arrayLength`, `arrayGet`, `arraySet`,
   `arrayBufferCopy`, `arrayBufferData`, `arrayBufferSize`
-- Capability probe: `engineCap(name)` → `0|1`; JS `engineCaps()` returns a map.
+- Capability probe: `engineCap(name)` → `0|1`; JS `engineCaps()` returns a map
+  covering all 56 optional engine symbols.
+- Runtime state: `runtimeSetInfo`, `gcThreshold`, `setGcThreshold`,
+  `runtimeUpdateStackTop`, `runGC`, `dumpFlags`, `setDumpFlags`,
+  `runtimeOpaque`, `setRuntimeOpaque`, `memoryUsage`, `isLiveObject`
+- Exceptions/conversions: `hasException`, `throwValue`, `toBool`,
+  `toNumberValue`, `toStringValue`, `toIndex`
+- Atoms/invocation: `atomNew`, `atomFree`, `atomName`, `invokeAtom`,
+  `callConstructor`, `callConstructor2`
+- Eval/equality: `eval2`, `evalFunction`, `evalThis`, `evalThis2`,
+  `valueIsInstanceOf`, `valueIsEqual`, `valueIsStrictEqual`,
+  `valueIsSameValue`, `valueIsSameValueZero`
+- Descriptors/promises/symbols: `ownPropertyNames`, `ownProperty`,
+  `freePropertyEnum`, `promiseState`, `promiseResult`, `isPromise`,
+  `newSettledPromise`, `newSymbol`, `newPrivateSymbol`
 - JIT (optional): `jitNew`, `jitInfo`, `jitStats`, `jitCompile`, `jitInvoke`,
   `jitCall`, `jitCleanup`, `jitFree`
 
@@ -32,7 +46,10 @@ All exports are registered by `mochijsnative.c` through
 
 `valueNew` / `valueFromJS` allocate a handle that must be released with
 `valueFree` (JS `Value.free()`). Setters duplicate the value before handing it
-to the engine, so JS temporaries can still be freed safely.
+to the engine, so JS temporaries can still be freed safely. `throwValue`
+leaves the exception pending; JS `Context.raise()` keeps it pending and
+`Context.throw()` retrieves it via `getException`. `ownProperty` returns value
+slots for `value`/`getter`/`setter` that must be freed.
 
 ## Build variables
 

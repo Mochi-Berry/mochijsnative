@@ -16,6 +16,33 @@ export function numberToBits(value) {
     return view.getBigUint64(0, true);
 }
 
+function prepareArgs(context, values) {
+    const owned = [];
+    const slots = [];
+    for (const value of values) {
+        if (value instanceof Value) {
+            slots.push(value.slot);
+        } else {
+            const stored = valueFromJS(context, value);
+            owned.push(stored);
+            slots.push(stored.slot);
+        }
+    }
+    return { slots, owned };
+}
+
+function releaseArgs(owned) {
+    for (const value of owned) {
+        if (!value.released) value.free();
+    }
+}
+
+function slotOf(context, value) {
+    if (value instanceof Value) return { slot: value.slot, owned: null };
+    const stored = valueFromJS(context, value);
+    return { slot: stored.slot, owned: stored };
+}
+
 export class Value {
     constructor(context, slot) {
         this.context = context;
@@ -113,6 +140,91 @@ export class Value {
 
     arrayBufferSize() {
         return Number(host.arrayBufferSize(this.context.id, this.slot));
+    }
+
+    isPromise() {
+        return Number(host.isPromise(this.slot)) !== 0;
+    }
+
+    promiseState() {
+        return Number(host.promiseState(this.context.id, this.slot));
+    }
+
+    promiseResult() {
+        return new Value(this.context, host.promiseResult(this.context.id, this.slot));
+    }
+
+    nativeToBool() {
+        return Number(host.toBool(this.context.id, this.slot)) !== 0;
+    }
+
+    nativeToNumber() {
+        return new Value(this.context, host.toNumberValue(this.context.id, this.slot));
+    }
+
+    nativeToString() {
+        return new Value(this.context, host.toStringValue(this.context.id, this.slot));
+    }
+
+    toIndex() {
+        return Number(host.toIndex(this.context.id, this.slot));
+    }
+
+    isInstanceOf(constructor) {
+        const arg = slotOf(this.context, constructor);
+        try {
+            return Number(host.valueIsInstanceOf(this.context.id, this.slot, arg.slot)) !== 0;
+        } finally {
+            if (arg.owned) arg.owned.free();
+        }
+    }
+
+    equal(other) {
+        const arg = slotOf(this.context, other);
+        try {
+            return Number(host.valueIsEqual(this.context.id, this.slot, arg.slot));
+        } finally {
+            if (arg.owned) arg.owned.free();
+        }
+    }
+
+    strictEqual(other) {
+        const arg = slotOf(this.context, other);
+        try {
+            return Number(host.valueIsStrictEqual(this.context.id, this.slot, arg.slot)) !== 0;
+        } finally {
+            if (arg.owned) arg.owned.free();
+        }
+    }
+
+    sameValue(other) {
+        const arg = slotOf(this.context, other);
+        try {
+            return Number(host.valueIsSameValue(this.context.id, this.slot, arg.slot)) !== 0;
+        } finally {
+            if (arg.owned) arg.owned.free();
+        }
+    }
+
+    sameValueZero(other) {
+        const arg = slotOf(this.context, other);
+        try {
+            return Number(host.valueIsSameValueZero(this.context.id, this.slot, arg.slot)) !== 0;
+        } finally {
+            if (arg.owned) arg.owned.free();
+        }
+    }
+
+    ownPropertyNames(flags = 1) {
+        return JSON.parse(host.ownPropertyNames(this.context.id, this.slot, flags));
+    }
+
+    ownProperty(atom) {
+        const info = JSON.parse(host.ownProperty(this.context.id, this.slot, Number(atom)));
+        info.value = new Value(this.context, info.valueSlot);
+        info.getter = new Value(this.context, info.getterSlot);
+        info.setter = new Value(this.context, info.setterSlot);
+        return info;
     }
 
     check() {
@@ -264,6 +376,262 @@ export class Context {
         return Number(host.loop(this.id, once ? 1 : 0));
     }
 
+    hasException() {
+        return Number(host.hasException(this.id)) !== 0;
+    }
+
+    raise(value) {
+        const arg = slotOf(this, value);
+        try {
+            host.throwValue(this.id, arg.slot);
+            return this;
+        } finally {
+            if (arg.owned) arg.owned.free();
+        }
+    }
+
+    throw(value) {
+        this.raise(value);
+        return this.exception();
+    }
+
+    toBool(value) {
+        const arg = slotOf(this, value);
+        try {
+            return Number(host.toBool(this.id, arg.slot)) !== 0;
+        } finally {
+            if (arg.owned) arg.owned.free();
+        }
+    }
+
+    toNumberValue(value) {
+        const arg = slotOf(this, value);
+        try {
+            return new Value(this, host.toNumberValue(this.id, arg.slot));
+        } finally {
+            if (arg.owned) arg.owned.free();
+        }
+    }
+
+    toStringValue(value) {
+        const arg = slotOf(this, value);
+        try {
+            return new Value(this, host.toStringValue(this.id, arg.slot));
+        } finally {
+            if (arg.owned) arg.owned.free();
+        }
+    }
+
+    toIndex(value) {
+        const arg = slotOf(this, value);
+        try {
+            return Number(host.toIndex(this.id, arg.slot));
+        } finally {
+            if (arg.owned) arg.owned.free();
+        }
+    }
+
+    newAtom(name) {
+        return Number(host.atomNew(this.id, String(name)));
+    }
+
+    atomName(atom) {
+        return host.atomName(this.id, Number(atom));
+    }
+
+    freeAtom(atom) {
+        host.atomFree(this.id, Number(atom));
+        return this;
+    }
+
+    invokeAtom(fn, thisValue, atom, ...args) {
+        const prepared = prepareArgs(this, args);
+        const self = slotOf(this, thisValue);
+        const target = slotOf(this, fn);
+        try {
+            return new Value(this, host.invokeAtom(this.id, target.slot, Number(atom),
+                self.slot, ...prepared.slots));
+        } finally {
+            if (self.owned) self.owned.free();
+            if (target.owned) target.owned.free();
+            releaseArgs(prepared.owned);
+        }
+    }
+
+    callConstructor(fn, ...args) {
+        const prepared = prepareArgs(this, args);
+        const target = slotOf(this, fn);
+        try {
+            return new Value(this, host.callConstructor(this.id, target.slot,
+                ...prepared.slots));
+        } finally {
+            if (target.owned) target.owned.free();
+            releaseArgs(prepared.owned);
+        }
+    }
+
+    callConstructor2(fn, newTarget, ...args) {
+        const prepared = prepareArgs(this, args);
+        const target = slotOf(this, fn);
+        const parent = slotOf(this, newTarget);
+        try {
+            return new Value(this, host.callConstructor2(this.id, target.slot,
+                parent.slot, ...prepared.slots));
+        } finally {
+            if (target.owned) target.owned.free();
+            if (parent.owned) parent.owned.free();
+            releaseArgs(prepared.owned);
+        }
+    }
+
+    eval2(source, filename = '<eval>', flags = 0, line = 1) {
+        return new Value(this, host.eval2(this.id, String(source), String(filename),
+            flags, line));
+    }
+
+    evalFunction(fn) {
+        const target = slotOf(this, fn);
+        try {
+            return new Value(this, host.evalFunction(this.id, target.slot));
+        } finally {
+            if (target.owned) target.owned.free();
+        }
+    }
+
+    evalThis(self, source, filename = '<eval>', flags = 0) {
+        const target = slotOf(this, self);
+        try {
+            return new Value(this, host.evalThis(this.id, target.slot, String(source),
+                String(filename), flags));
+        } finally {
+            if (target.owned) target.owned.free();
+        }
+    }
+
+    evalThis2(self, source, filename = '<eval>', flags = 0, line = 1) {
+        const target = slotOf(this, self);
+        try {
+            return new Value(this, host.evalThis2(this.id, target.slot, String(source),
+                String(filename), flags, line));
+        } finally {
+            if (target.owned) target.owned.free();
+        }
+    }
+
+    isInstanceOf(value, constructor) {
+        const subject = slotOf(this, value);
+        const ctor = slotOf(this, constructor);
+        try {
+            return Number(host.valueIsInstanceOf(this.id, subject.slot, ctor.slot)) !== 0;
+        } finally {
+            if (subject.owned) subject.owned.free();
+            if (ctor.owned) ctor.owned.free();
+        }
+    }
+
+    isEqual(a, b) {
+        const left = slotOf(this, a);
+        const right = slotOf(this, b);
+        try {
+            return Number(host.valueIsEqual(this.id, left.slot, right.slot));
+        } finally {
+            if (left.owned) left.owned.free();
+            if (right.owned) right.owned.free();
+        }
+    }
+
+    isStrictEqual(a, b) {
+        const left = slotOf(this, a);
+        const right = slotOf(this, b);
+        try {
+            return Number(host.valueIsStrictEqual(this.id, left.slot, right.slot)) !== 0;
+        } finally {
+            if (left.owned) left.owned.free();
+            if (right.owned) right.owned.free();
+        }
+    }
+
+    isSameValue(a, b) {
+        const left = slotOf(this, a);
+        const right = slotOf(this, b);
+        try {
+            return Number(host.valueIsSameValue(this.id, left.slot, right.slot)) !== 0;
+        } finally {
+            if (left.owned) left.owned.free();
+            if (right.owned) right.owned.free();
+        }
+    }
+
+    isSameValueZero(a, b) {
+        const left = slotOf(this, a);
+        const right = slotOf(this, b);
+        try {
+            return Number(host.valueIsSameValueZero(this.id, left.slot, right.slot)) !== 0;
+        } finally {
+            if (left.owned) left.owned.free();
+            if (right.owned) right.owned.free();
+        }
+    }
+
+    ownPropertyNames(obj, flags = 1) {
+        const target = slotOf(this, obj);
+        try {
+            return JSON.parse(host.ownPropertyNames(this.id, target.slot, flags));
+        } finally {
+            if (target.owned) target.owned.free();
+        }
+    }
+
+    ownProperty(obj, atom) {
+        const target = slotOf(this, obj);
+        try {
+            const info = JSON.parse(host.ownProperty(this.id, target.slot, Number(atom)));
+            info.value = new Value(this, info.valueSlot);
+            info.getter = new Value(this, info.getterSlot);
+            info.setter = new Value(this, info.setterSlot);
+            return info;
+        } finally {
+            if (target.owned) target.owned.free();
+        }
+    }
+
+    promiseState(value) {
+        const target = slotOf(this, value);
+        try {
+            return Number(host.promiseState(this.id, target.slot));
+        } finally {
+            if (target.owned) target.owned.free();
+        }
+    }
+
+    promiseResult(value) {
+        const target = slotOf(this, value);
+        try {
+            return new Value(this, host.promiseResult(this.id, target.slot));
+        } finally {
+            if (target.owned) target.owned.free();
+        }
+    }
+
+    newSettledPromise(value, rejected = false) {
+        const target = slotOf(this, value);
+        try {
+            return new Value(this, host.newSettledPromise(this.id,
+                rejected ? 1 : 0, target.slot));
+        } finally {
+            if (target.owned) target.owned.free();
+        }
+    }
+
+    newSymbol(description, global = false) {
+        return new Value(this, host.newSymbol(this.id, String(description),
+            global ? 1 : 0));
+    }
+
+    newPrivateSymbol(description) {
+        return new Value(this, host.newPrivateSymbol(this.id, String(description)));
+    }
+
     /* prepare standard globals on a context that was created without std. */
     std() {
         const r = Number(host.contextStd(this.id));
@@ -287,6 +655,57 @@ export class Runtime {
     limits(stackBytes = 0, memoryBytes = 0) {
         host.runtimeLimits(this.id, stackBytes, memoryBytes);
         return this;
+    }
+
+    info(text) {
+        host.runtimeSetInfo(this.id, String(text));
+        return this;
+    }
+
+    gcThreshold() {
+        return Number(host.gcThreshold(this.id));
+    }
+
+    setGcThreshold(bytes) {
+        host.setGcThreshold(this.id, BigInt(bytes));
+        return this;
+    }
+
+    updateStackTop() {
+        host.runtimeUpdateStackTop(this.id);
+        return this;
+    }
+
+    runGC() {
+        host.runGC(this.id);
+        return this;
+    }
+
+    dumpFlags() {
+        return Number(host.dumpFlags(this.id));
+    }
+
+    setDumpFlags(flags) {
+        host.setDumpFlags(this.id, BigInt(flags));
+        return this;
+    }
+
+    opaque() {
+        return host.runtimeOpaque(this.id);
+    }
+
+    setOpaque(pointer) {
+        host.setRuntimeOpaque(this.id, BigInt(pointer));
+        return this;
+    }
+
+    memoryUsage() {
+        return JSON.parse(host.memoryUsage(this.id));
+    }
+
+    isLive(value) {
+        if (!(value instanceof Value)) return false;
+        return Number(host.isLiveObject(this.id, value.slot)) !== 0;
     }
 
     context(withStd = true) {
@@ -395,7 +814,17 @@ export const ENGINE_CAPS = [
     'GetVersion', 'NewArray', 'GetPropertyUint32', 'SetPropertyUint32',
     'GetPropertyValue', 'SetPropertyValue', 'DefinePropertyValueStr',
     'GetLength', 'IsArray', 'NewArrayBufferCopy', 'GetArrayBuffer',
-    'IsArrayBuffer'
+    'IsArrayBuffer', 'GetPackageName', 'GetBaseVersion', 'GetBaseDate',
+    'SetRuntimeInfo', 'GetGCThreshold', 'SetGCThreshold', 'UpdateStackTop',
+    'RunGC', 'GetDumpFlags', 'SetDumpFlags', 'GetRuntimeOpaque',
+    'SetRuntimeOpaque', 'ComputeMemoryUsage', 'IsLiveObject', 'HasException',
+    'Throw', 'ToBool', 'ToNumber', 'ToString', 'ToIndex', 'NewAtom',
+    'FreeAtom', 'AtomToCStringLen', 'Invoke', 'CallConstructor',
+    'CallConstructor2', 'Eval2', 'EvalFunction', 'EvalThis', 'EvalThis2',
+    'IsInstanceOf', 'IsEqual', 'IsStrictEqual', 'IsSameValue',
+    'IsSameValueZero', 'GetOwnPropertyNames', 'GetOwnProperty',
+    'FreePropertyEnum', 'PromiseState', 'PromiseResult', 'IsPromise',
+    'NewSettledPromise', 'NewSymbol', 'NewPrivateSymbol'
 ];
 
 export function hasEngineCap(name) {
@@ -406,6 +835,27 @@ export function engineCaps() {
     const out = {};
     for (const name of ENGINE_CAPS) out[name] = hasEngineCap(name);
     return out;
+}
+
+export function packageName() {
+    return host.packageName();
+}
+
+export function baseVersion() {
+    return host.baseVersion();
+}
+
+export function baseDate() {
+    return host.baseDate();
+}
+
+export function isPromise(value) {
+    if (!(value instanceof Value)) return false;
+    return Number(host.isPromise(value.slot)) !== 0;
+}
+
+export function freePropertyEnum(context, pointer, length) {
+    host.freePropertyEnum(context.id, BigInt(pointer), Number(length));
 }
 
 export default {
@@ -420,6 +870,11 @@ export default {
     engineCaps,
     hasEngineCap,
     detectModule,
+    packageName,
+    baseVersion,
+    baseDate,
+    isPromise,
+    freePropertyEnum,
     hostBase,
     hostExport,
     lastError,

@@ -40,10 +40,10 @@ mochijsnative/
 | field | value |
 |---|---|
 | status | `verified` |
-| version | `0.3.0` |
-| runtime exports | 58 |
+| version | `0.4.0` |
+| runtime exports | 102 |
 | native binary | `mochi_modules/mochijsnative/lib/mochijsnative_x86_64.dll` |
-| selftest | 30/30 ALL OK on export-enabled `mbjs.new.exe` |
+| selftest | 52/52 ALL OK on export-enabled `mbjs.new.exe` |
 
 ## Build
 

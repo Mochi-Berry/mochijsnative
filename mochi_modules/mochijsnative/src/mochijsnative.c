@@ -10,7 +10,7 @@
 #  include <windows.h>
 #endif
 
-#define MODULE_VERSION "mochijsnative 0.3.0"
+#define MODULE_VERSION "mochijsnative 0.4.0"
 
 static MBJSRuntime rt;
 
@@ -75,6 +75,55 @@ typedef struct {
     MBJSValue (*NewArrayBufferCopy)(MBJSContext *, const uint8_t *, size_t);
     uint8_t *(*GetArrayBuffer)(MBJSContext *, size_t *, MBJSValueConst);
     bool (*IsArrayBuffer)(MBJSValueConst);
+    const char *(*GetPackageName)(void);
+    const char *(*GetBaseVersion)(void);
+    const char *(*GetBaseDate)(void);
+    void (*SetRuntimeInfo)(MBJSRuntime *, const char *);
+    size_t (*GetGCThreshold)(MBJSRuntime *);
+    void (*SetGCThreshold)(MBJSRuntime *, size_t);
+    void (*UpdateStackTop)(MBJSRuntime *);
+    void (*RunGC)(MBJSRuntime *);
+    uint64_t (*GetDumpFlags)(MBJSRuntime *);
+    void (*SetDumpFlags)(MBJSRuntime *, uint64_t);
+    void *(*GetRuntimeOpaque)(MBJSRuntime *);
+    void (*SetRuntimeOpaque)(MBJSRuntime *, void *);
+    void (*ComputeMemoryUsage)(MBJSRuntime *, MBJSMemoryUsage *);
+    bool (*IsLiveObject)(MBJSRuntime *, MBJSValueConst);
+    bool (*HasException)(MBJSContext *);
+    MBJSValue (*Throw)(MBJSContext *, MBJSValue);
+    int (*ToBool)(MBJSContext *, MBJSValueConst);
+    MBJSValue (*ToNumber)(MBJSContext *, MBJSValueConst);
+    MBJSValue (*ToString)(MBJSContext *, MBJSValueConst);
+    int (*ToIndex)(MBJSContext *, uint64_t *, MBJSValueConst);
+    MBJSAtom (*NewAtom)(MBJSContext *, const char *);
+    void (*FreeAtom)(MBJSContext *, MBJSAtom);
+    const char *(*AtomToCStringLen)(MBJSContext *, size_t *, MBJSAtom);
+    MBJSValue (*Invoke)(MBJSContext *, MBJSValueConst, MBJSAtom, int, MBJSValueConst *);
+    MBJSValue (*CallConstructor)(MBJSContext *, MBJSValueConst, int, MBJSValueConst *);
+    MBJSValue (*CallConstructor2)(MBJSContext *, MBJSValueConst, MBJSValueConst,
+                                  int, MBJSValueConst *);
+    MBJSValue (*Eval2)(MBJSContext *, const char *, size_t, MBJSEvalOptions *);
+    MBJSValue (*EvalFunction)(MBJSContext *, MBJSValue);
+    MBJSValue (*EvalThis)(MBJSContext *, MBJSValueConst, const char *, size_t,
+                          const char *, int);
+    MBJSValue (*EvalThis2)(MBJSContext *, MBJSValueConst, const char *, size_t,
+                           MBJSEvalOptions *);
+    int (*IsInstanceOf)(MBJSContext *, MBJSValueConst, MBJSValueConst);
+    int (*IsEqual)(MBJSContext *, MBJSValueConst, MBJSValueConst);
+    bool (*IsStrictEqual)(MBJSContext *, MBJSValueConst, MBJSValueConst);
+    bool (*IsSameValue)(MBJSContext *, MBJSValueConst, MBJSValueConst);
+    bool (*IsSameValueZero)(MBJSContext *, MBJSValueConst, MBJSValueConst);
+    int (*GetOwnPropertyNames)(MBJSContext *, MBJSPropertyEnum **, uint32_t *,
+                               MBJSValueConst, int);
+    int (*GetOwnProperty)(MBJSContext *, MBJSPropertyDescriptor *,
+                          MBJSValueConst, MBJSAtom);
+    void (*FreePropertyEnum)(MBJSContext *, MBJSPropertyEnum *, uint32_t);
+    MBJSPromiseStateEnum (*PromiseState)(MBJSContext *, MBJSValueConst);
+    MBJSValue (*PromiseResult)(MBJSContext *, MBJSValueConst);
+    bool (*IsPromise)(MBJSValueConst);
+    MBJSValue (*NewSettledPromise)(MBJSContext *, bool, MBJSValueConst);
+    MBJSValue (*NewSymbol)(MBJSContext *, const char *, bool);
+    MBJSValue (*NewPrivateSymbol)(MBJSContext *, const char *);
 } MochiApi;
 
 static MochiApi api;
@@ -154,6 +203,50 @@ static const char *api_resolve(void)
     API_SYM_OPT(NewArrayBufferCopy, "MBJS_NewArrayBufferCopy");
     API_SYM_OPT(GetArrayBuffer, "MBJS_GetArrayBuffer");
     API_SYM_OPT(IsArrayBuffer, "MBJS_IsArrayBuffer");
+    API_SYM_OPT(GetPackageName, "MBJS_GetPackageName");
+    API_SYM_OPT(GetBaseVersion, "MBJS_GetBaseVersion");
+    API_SYM_OPT(GetBaseDate, "MBJS_GetBaseDate");
+    API_SYM_OPT(SetRuntimeInfo, "MBJS_SetRuntimeInfo");
+    API_SYM_OPT(GetGCThreshold, "MBJS_GetGCThreshold");
+    API_SYM_OPT(SetGCThreshold, "MBJS_SetGCThreshold");
+    API_SYM_OPT(UpdateStackTop, "MBJS_UpdateStackTop");
+    API_SYM_OPT(RunGC, "MBJS_RunGC");
+    API_SYM_OPT(GetDumpFlags, "MBJS_GetDumpFlags");
+    API_SYM_OPT(SetDumpFlags, "MBJS_SetDumpFlags");
+    API_SYM_OPT(GetRuntimeOpaque, "MBJS_GetRuntimeOpaque");
+    API_SYM_OPT(SetRuntimeOpaque, "MBJS_SetRuntimeOpaque");
+    API_SYM_OPT(ComputeMemoryUsage, "MBJS_ComputeMemoryUsage");
+    API_SYM_OPT(IsLiveObject, "MBJS_IsLiveObject");
+    API_SYM_OPT(HasException, "MBJS_HasException");
+    API_SYM_OPT(Throw, "MBJS_Throw");
+    API_SYM_OPT(ToBool, "MBJS_ToBool");
+    API_SYM_OPT(ToNumber, "MBJS_ToNumber");
+    API_SYM_OPT(ToString, "MBJS_ToString");
+    API_SYM_OPT(ToIndex, "MBJS_ToIndex");
+    API_SYM_OPT(NewAtom, "MBJS_NewAtom");
+    API_SYM_OPT(FreeAtom, "MBJS_FreeAtom");
+    API_SYM_OPT(AtomToCStringLen, "MBJS_AtomToCStringLen");
+    API_SYM_OPT(Invoke, "MBJS_Invoke");
+    API_SYM_OPT(CallConstructor, "MBJS_CallConstructor");
+    API_SYM_OPT(CallConstructor2, "MBJS_CallConstructor2");
+    API_SYM_OPT(Eval2, "MBJS_Eval2");
+    API_SYM_OPT(EvalFunction, "MBJS_EvalFunction");
+    API_SYM_OPT(EvalThis, "MBJS_EvalThis");
+    API_SYM_OPT(EvalThis2, "MBJS_EvalThis2");
+    API_SYM_OPT(IsInstanceOf, "MBJS_IsInstanceOf");
+    API_SYM_OPT(IsEqual, "MBJS_IsEqual");
+    API_SYM_OPT(IsStrictEqual, "MBJS_IsStrictEqual");
+    API_SYM_OPT(IsSameValue, "MBJS_IsSameValue");
+    API_SYM_OPT(IsSameValueZero, "MBJS_IsSameValueZero");
+    API_SYM_OPT(GetOwnPropertyNames, "MBJS_GetOwnPropertyNames");
+    API_SYM_OPT(GetOwnProperty, "MBJS_GetOwnProperty");
+    API_SYM_OPT(FreePropertyEnum, "MBJS_FreePropertyEnum");
+    API_SYM_OPT(PromiseState, "MBJS_PromiseState");
+    API_SYM_OPT(PromiseResult, "MBJS_PromiseResult");
+    API_SYM_OPT(IsPromise, "MBJS_IsPromise");
+    API_SYM_OPT(NewSettledPromise, "MBJS_NewSettledPromise");
+    API_SYM_OPT(NewSymbol, "MBJS_NewSymbol");
+    API_SYM_OPT(NewPrivateSymbol, "MBJS_NewPrivateSymbol");
 
 #undef API_SYM
     return NULL;
@@ -176,6 +269,7 @@ typedef struct {
 typedef struct {
     int used;
     MBJSRuntime *rt;
+    char info[256];
 } RtSlot;
 
 typedef struct {
@@ -369,7 +463,51 @@ static const char *known_signature(const char *name)
         { "MBJS_IsArray", "i32(u64)" },
         { "MBJS_NewArrayBufferCopy", "u64(ptr,ptr,u64)" },
         { "MBJS_GetArrayBuffer", "ptr(ptr,ptr,u64)" },
-        { "MBJS_IsArrayBuffer", "i32(u64)" }
+        { "MBJS_IsArrayBuffer", "i32(u64)" },
+        { "MBJS_GetPackageName", "ptr()" },
+        { "MBJS_GetBaseVersion", "ptr()" },
+        { "MBJS_GetBaseDate", "ptr()" },
+        { "MBJS_SetRuntimeInfo", "void(ptr,ptr)" },
+        { "MBJS_GetGCThreshold", "u64(ptr)" },
+        { "MBJS_SetGCThreshold", "void(ptr,u64)" },
+        { "MBJS_UpdateStackTop", "void(ptr)" },
+        { "MBJS_RunGC", "void(ptr)" },
+        { "MBJS_GetDumpFlags", "u64(ptr)" },
+        { "MBJS_SetDumpFlags", "void(ptr,u64)" },
+        { "MBJS_GetRuntimeOpaque", "ptr(ptr)" },
+        { "MBJS_SetRuntimeOpaque", "void(ptr,ptr)" },
+        { "MBJS_ComputeMemoryUsage", "void(ptr,ptr)" },
+        { "MBJS_IsLiveObject", "i32(ptr,u64)" },
+        { "MBJS_HasException", "i32(ptr)" },
+        { "MBJS_Throw", "u64(ptr,u64)" },
+        { "MBJS_ToBool", "i32(ptr,u64)" },
+        { "MBJS_ToNumber", "u64(ptr,u64)" },
+        { "MBJS_ToString", "u64(ptr,u64)" },
+        { "MBJS_ToIndex", "i32(ptr,ptr,u64)" },
+        { "MBJS_NewAtom", "u32(ptr,ptr)" },
+        { "MBJS_FreeAtom", "void(ptr,u32)" },
+        { "MBJS_AtomToCStringLen", "ptr(ptr,ptr,u32)" },
+        { "MBJS_Invoke", "u64(ptr,u64,u32,i32,ptr)" },
+        { "MBJS_CallConstructor", "u64(ptr,u64,i32,ptr)" },
+        { "MBJS_CallConstructor2", "u64(ptr,u64,u64,i32,ptr)" },
+        { "MBJS_Eval2", "u64(ptr,ptr,u64,ptr)" },
+        { "MBJS_EvalFunction", "u64(ptr,u64)" },
+        { "MBJS_EvalThis", "u64(ptr,u64,ptr,u64,ptr,i32)" },
+        { "MBJS_EvalThis2", "u64(ptr,u64,ptr,u64,ptr)" },
+        { "MBJS_IsInstanceOf", "i32(ptr,u64,u64)" },
+        { "MBJS_IsEqual", "i32(ptr,u64,u64)" },
+        { "MBJS_IsStrictEqual", "i32(ptr,u64,u64)" },
+        { "MBJS_IsSameValue", "i32(ptr,u64,u64)" },
+        { "MBJS_IsSameValueZero", "i32(ptr,u64,u64)" },
+        { "MBJS_GetOwnPropertyNames", "i32(ptr,ptr,ptr,u64,i32)" },
+        { "MBJS_GetOwnProperty", "i32(ptr,ptr,u64,u32)" },
+        { "MBJS_FreePropertyEnum", "void(ptr,ptr,u32)" },
+        { "MBJS_PromiseState", "i32(ptr,u64)" },
+        { "MBJS_PromiseResult", "u64(ptr,u64)" },
+        { "MBJS_IsPromise", "i32(u64)" },
+        { "MBJS_NewSettledPromise", "u64(ptr,i32,u64)" },
+        { "MBJS_NewSymbol", "u64(ptr,ptr,i32)" },
+        { "MBJS_NewPrivateSymbol", "u64(ptr,ptr)" }
     };
     size_t i;
     if (!name)
@@ -434,6 +572,58 @@ static int value_slot_id(MBJSContext *ctx, MBJSValueConst v)
     if (arg_int(ctx, v, &id) < 0 || id < 0 || id >= MAX_VALUES || !g_values[id].used)
         return -1;
     return id;
+}
+
+static int value_args(MBJSContext *ctx, int argc, MBJSValueConst *argv,
+                      int start, MBJSValue *out, int cap)
+{
+    int n = 0;
+    int i;
+    for (i = start; i < argc && n < cap; i++) {
+        int id = value_slot_id(ctx, argv[i]);
+        if (id < 0) {
+            set_error("invalid value id in argument list");
+            return -1;
+        }
+        out[n++] = g_values[id].value;
+    }
+    return n;
+}
+
+static MBJSValue store_in(MBJSContext *ctx, CtxSlot *c, MBJSValue value)
+{
+    return rt.NewBigUint64(ctx, (uint64_t)(int64_t)value_store(
+        (int)(int64_t)(uintptr_t)(c - g_ctxs), value));
+}
+
+static MBJSValue cap_unavailable(MBJSContext *ctx, const char *name)
+{
+    set_error(name);
+    return rt.NewBigUint64(ctx, (uint64_t)(int64_t)-1);
+}
+
+static void json_append_string(char *buf, size_t cap, size_t *pos,
+                               const char *s, size_t len)
+{
+    size_t i;
+    for (i = 0; s && i < len && *pos + 6 < cap; i++) {
+        unsigned char ch = (unsigned char)s[i];
+        if (ch == '"' || ch == '\\') {
+            buf[(*pos)++] = '\\';
+            buf[(*pos)++] = (char)ch;
+        } else if (ch == '\n') {
+            buf[(*pos)++] = '\\'; buf[(*pos)++] = 'n';
+        } else if (ch == '\r') {
+            buf[(*pos)++] = '\\'; buf[(*pos)++] = 'r';
+        } else if (ch == '\t') {
+            buf[(*pos)++] = '\\'; buf[(*pos)++] = 't';
+        } else if (ch < 0x20) {
+            snprintf(buf + *pos, cap - *pos, "\\u%04x", ch);
+            *pos += 6;
+        } else {
+            buf[(*pos)++] = (char)ch;
+        }
+    }
 }
 
 static CtxSlot *ctx_slot(MBJSContext *ctx, MBJSValueConst v)
@@ -506,7 +696,9 @@ static MBJSValue mn_abi(MBJSContext *ctx, MBJSValueConst this_val,
         "\"deep\":{\"runtime\":true,\"context\":true,\"eval\":true,"
         "\"values\":true,\"properties\":true,\"call\":true,"
         "\"json\":true,\"exceptions\":true,\"jit\":true,"
-        "\"export_enumeration\":true},"
+        "\"export_enumeration\":true,\"runtime_state\":true,"
+        "\"atoms\":true,\"constructors\":true,\"promises\":true,"
+        "\"symbols\":true,\"memory_accounting\":true},"
         "\"symbols\":{"
         "\"MBJS_GetVersion\":\"ptr()\","
         "\"MBJS_NewRuntime\":\"ptr()\","
@@ -1288,18 +1480,64 @@ static MBJSValue mn_engine_cap(MBJSContext *ctx, MBJSValueConst this_val,
     name = arg_cstr(ctx, argv[0]);
     if (!name)
         return rt.NewBigUint64(ctx, 0);
+#define MN_CAP(label, field) else if (!strcmp(name, label)) present = api.field != NULL;
     if (!strcmp(name, "GetVersion")) present = api.GetVersion != NULL;
-    else if (!strcmp(name, "NewArray")) present = api.NewArray != NULL;
-    else if (!strcmp(name, "GetPropertyUint32")) present = api.GetPropertyUint32 != NULL;
-    else if (!strcmp(name, "SetPropertyUint32")) present = api.SetPropertyUint32 != NULL;
-    else if (!strcmp(name, "GetPropertyValue")) present = api.GetPropertyValue != NULL;
-    else if (!strcmp(name, "SetPropertyValue")) present = api.SetPropertyValue != NULL;
-    else if (!strcmp(name, "DefinePropertyValueStr")) present = api.DefinePropertyValueStr != NULL;
-    else if (!strcmp(name, "GetLength")) present = api.GetLength != NULL;
-    else if (!strcmp(name, "IsArray")) present = api.IsArray != NULL;
-    else if (!strcmp(name, "NewArrayBufferCopy")) present = api.NewArrayBufferCopy != NULL;
-    else if (!strcmp(name, "GetArrayBuffer")) present = api.GetArrayBuffer != NULL;
-    else if (!strcmp(name, "IsArrayBuffer")) present = api.IsArrayBuffer != NULL;
+    MN_CAP("NewArray", NewArray)
+    MN_CAP("GetPropertyUint32", GetPropertyUint32)
+    MN_CAP("SetPropertyUint32", SetPropertyUint32)
+    MN_CAP("GetPropertyValue", GetPropertyValue)
+    MN_CAP("SetPropertyValue", SetPropertyValue)
+    MN_CAP("DefinePropertyValueStr", DefinePropertyValueStr)
+    MN_CAP("GetLength", GetLength)
+    MN_CAP("IsArray", IsArray)
+    MN_CAP("NewArrayBufferCopy", NewArrayBufferCopy)
+    MN_CAP("GetArrayBuffer", GetArrayBuffer)
+    MN_CAP("IsArrayBuffer", IsArrayBuffer)
+    MN_CAP("GetPackageName", GetPackageName)
+    MN_CAP("GetBaseVersion", GetBaseVersion)
+    MN_CAP("GetBaseDate", GetBaseDate)
+    MN_CAP("SetRuntimeInfo", SetRuntimeInfo)
+    MN_CAP("GetGCThreshold", GetGCThreshold)
+    MN_CAP("SetGCThreshold", SetGCThreshold)
+    MN_CAP("UpdateStackTop", UpdateStackTop)
+    MN_CAP("RunGC", RunGC)
+    MN_CAP("GetDumpFlags", GetDumpFlags)
+    MN_CAP("SetDumpFlags", SetDumpFlags)
+    MN_CAP("GetRuntimeOpaque", GetRuntimeOpaque)
+    MN_CAP("SetRuntimeOpaque", SetRuntimeOpaque)
+    MN_CAP("ComputeMemoryUsage", ComputeMemoryUsage)
+    MN_CAP("IsLiveObject", IsLiveObject)
+    MN_CAP("HasException", HasException)
+    MN_CAP("Throw", Throw)
+    MN_CAP("ToBool", ToBool)
+    MN_CAP("ToNumber", ToNumber)
+    MN_CAP("ToString", ToString)
+    MN_CAP("ToIndex", ToIndex)
+    MN_CAP("NewAtom", NewAtom)
+    MN_CAP("FreeAtom", FreeAtom)
+    MN_CAP("AtomToCStringLen", AtomToCStringLen)
+    MN_CAP("Invoke", Invoke)
+    MN_CAP("CallConstructor", CallConstructor)
+    MN_CAP("CallConstructor2", CallConstructor2)
+    MN_CAP("Eval2", Eval2)
+    MN_CAP("EvalFunction", EvalFunction)
+    MN_CAP("EvalThis", EvalThis)
+    MN_CAP("EvalThis2", EvalThis2)
+    MN_CAP("IsInstanceOf", IsInstanceOf)
+    MN_CAP("IsEqual", IsEqual)
+    MN_CAP("IsStrictEqual", IsStrictEqual)
+    MN_CAP("IsSameValue", IsSameValue)
+    MN_CAP("IsSameValueZero", IsSameValueZero)
+    MN_CAP("GetOwnPropertyNames", GetOwnPropertyNames)
+    MN_CAP("GetOwnProperty", GetOwnProperty)
+    MN_CAP("FreePropertyEnum", FreePropertyEnum)
+    MN_CAP("PromiseState", PromiseState)
+    MN_CAP("PromiseResult", PromiseResult)
+    MN_CAP("IsPromise", IsPromise)
+    MN_CAP("NewSettledPromise", NewSettledPromise)
+    MN_CAP("NewSymbol", NewSymbol)
+    MN_CAP("NewPrivateSymbol", NewPrivateSymbol)
+#undef MN_CAP
     rt.FreeCString(ctx, name);
     return rt.NewBigUint64(ctx, present ? 1 : 0);
 }
@@ -1765,7 +2003,733 @@ static MBJSValue mn_jit_free(MBJSContext *ctx, MBJSValueConst this_val,
     return MBJS_UNDEFINED;
 }
 
-#define MN_TAB_LEN 58
+static MBJSValue mn_package_name(MBJSContext *ctx, MBJSValueConst this_val,
+                                 int argc, MBJSValueConst *argv)
+{
+    (void)this_val; (void)argc; (void)argv;
+    return cstr_result(ctx, api.GetPackageName ? api.GetPackageName() : "");
+}
+
+static MBJSValue mn_base_version(MBJSContext *ctx, MBJSValueConst this_val,
+                                 int argc, MBJSValueConst *argv)
+{
+    (void)this_val; (void)argc; (void)argv;
+    return cstr_result(ctx, api.GetBaseVersion ? api.GetBaseVersion() : "");
+}
+
+static MBJSValue mn_base_date(MBJSContext *ctx, MBJSValueConst this_val,
+                              int argc, MBJSValueConst *argv)
+{
+    (void)this_val; (void)argc; (void)argv;
+    return cstr_result(ctx, api.GetBaseDate ? api.GetBaseDate() : "");
+}
+
+static MBJSValue mn_runtime_set_info(MBJSContext *ctx, MBJSValueConst this_val,
+                                     int argc, MBJSValueConst *argv)
+{
+    RtSlot *r;
+    const char *s;
+    (void)this_val;
+    if (argc < 2 || !(r = rt_slot(ctx, argv[0])) || !api.SetRuntimeInfo)
+        return cap_unavailable(ctx, "MBJS_SetRuntimeInfo unavailable");
+    s = arg_cstr(ctx, argv[1]);
+    if (!s)
+        return cap_unavailable(ctx, "MBJS_SetRuntimeInfo: invalid info");
+    snprintf(r->info, sizeof(r->info), "%s", s);
+    rt.FreeCString(ctx, s);
+    api.SetRuntimeInfo(r->rt, r->info);
+    return MBJS_UNDEFINED;
+}
+
+static MBJSValue mn_gc_threshold(MBJSContext *ctx, MBJSValueConst this_val,
+                                 int argc, MBJSValueConst *argv)
+{
+    RtSlot *r;
+    (void)this_val;
+    if (argc < 1 || !(r = rt_slot(ctx, argv[0])) || !api.GetGCThreshold)
+        return cap_unavailable(ctx, "MBJS_GetGCThreshold unavailable");
+    return rt.NewBigUint64(ctx, (uint64_t)api.GetGCThreshold(r->rt));
+}
+
+static MBJSValue mn_set_gc_threshold(MBJSContext *ctx, MBJSValueConst this_val,
+                                     int argc, MBJSValueConst *argv)
+{
+    RtSlot *r;
+    uint64_t n = 0;
+    (void)this_val;
+    if (argc < 2 || !(r = rt_slot(ctx, argv[0])) || !api.SetGCThreshold ||
+        arg_u64(ctx, argv[1], &n) < 0)
+        return cap_unavailable(ctx, "MBJS_SetGCThreshold unavailable");
+    api.SetGCThreshold(r->rt, (size_t)n);
+    return MBJS_UNDEFINED;
+}
+
+static MBJSValue mn_runtime_update_stack_top(MBJSContext *ctx, MBJSValueConst this_val,
+                                             int argc, MBJSValueConst *argv)
+{
+    RtSlot *r;
+    (void)this_val;
+    if (argc < 1 || !(r = rt_slot(ctx, argv[0])) || !api.UpdateStackTop)
+        return cap_unavailable(ctx, "MBJS_UpdateStackTop unavailable");
+    api.UpdateStackTop(r->rt);
+    return MBJS_UNDEFINED;
+}
+
+static MBJSValue mn_run_gc(MBJSContext *ctx, MBJSValueConst this_val,
+                           int argc, MBJSValueConst *argv)
+{
+    RtSlot *r;
+    (void)this_val;
+    if (argc < 1 || !(r = rt_slot(ctx, argv[0])) || !api.RunGC)
+        return cap_unavailable(ctx, "MBJS_RunGC unavailable");
+    api.RunGC(r->rt);
+    return MBJS_UNDEFINED;
+}
+
+static MBJSValue mn_dump_flags(MBJSContext *ctx, MBJSValueConst this_val,
+                               int argc, MBJSValueConst *argv)
+{
+    RtSlot *r;
+    (void)this_val;
+    if (argc < 1 || !(r = rt_slot(ctx, argv[0])) || !api.GetDumpFlags)
+        return cap_unavailable(ctx, "MBJS_GetDumpFlags unavailable");
+    return rt.NewBigUint64(ctx, api.GetDumpFlags(r->rt));
+}
+
+static MBJSValue mn_set_dump_flags(MBJSContext *ctx, MBJSValueConst this_val,
+                                   int argc, MBJSValueConst *argv)
+{
+    RtSlot *r;
+    uint64_t flags = 0;
+    (void)this_val;
+    if (argc < 2 || !(r = rt_slot(ctx, argv[0])) || !api.SetDumpFlags ||
+        arg_u64(ctx, argv[1], &flags) < 0)
+        return cap_unavailable(ctx, "MBJS_SetDumpFlags unavailable");
+    api.SetDumpFlags(r->rt, flags);
+    return MBJS_UNDEFINED;
+}
+
+static MBJSValue mn_runtime_opaque(MBJSContext *ctx, MBJSValueConst this_val,
+                                   int argc, MBJSValueConst *argv)
+{
+    RtSlot *r;
+    (void)this_val;
+    if (argc < 1 || !(r = rt_slot(ctx, argv[0])) || !api.GetRuntimeOpaque)
+        return cap_unavailable(ctx, "MBJS_GetRuntimeOpaque unavailable");
+    return rt.NewBigUint64(ctx, (uint64_t)(uintptr_t)api.GetRuntimeOpaque(r->rt));
+}
+
+static MBJSValue mn_set_runtime_opaque(MBJSContext *ctx, MBJSValueConst this_val,
+                                       int argc, MBJSValueConst *argv)
+{
+    RtSlot *r;
+    uint64_t p = 0;
+    (void)this_val;
+    if (argc < 2 || !(r = rt_slot(ctx, argv[0])) || !api.SetRuntimeOpaque ||
+        arg_u64(ctx, argv[1], &p) < 0)
+        return cap_unavailable(ctx, "MBJS_SetRuntimeOpaque unavailable");
+    api.SetRuntimeOpaque(r->rt, (void *)(uintptr_t)p);
+    return MBJS_UNDEFINED;
+}
+
+static MBJSValue mn_memory_usage(MBJSContext *ctx, MBJSValueConst this_val,
+                                 int argc, MBJSValueConst *argv)
+{
+    RtSlot *r;
+    MBJSMemoryUsage u;
+    char buf[3072];
+    int n;
+    (void)this_val;
+    if (argc < 1 || !(r = rt_slot(ctx, argv[0])) || !api.ComputeMemoryUsage)
+        return cap_unavailable(ctx, "MBJS_ComputeMemoryUsage unavailable");
+    memset(&u, 0, sizeof(u));
+    api.ComputeMemoryUsage(r->rt, &u);
+    n = snprintf(buf, sizeof(buf),
+        "{\"malloc_size\":%lld,\"malloc_limit\":%lld,\"memory_used_size\":%lld,"
+        "\"malloc_count\":%lld,\"atom_count\":%lld,\"atom_size\":%lld,"
+        "\"str_count\":%lld,\"str_size\":%lld,\"obj_count\":%lld,\"obj_size\":%lld,"
+        "\"prop_count\":%lld,\"prop_size\":%lld,\"shape_count\":%lld,"
+        "\"shape_size\":%lld,\"func_count\":%lld,\"func_size\":%lld,"
+        "\"c_func_count\":%lld,\"array_count\":%lld,\"fast_array_count\":%lld,"
+        "\"binary_object_count\":%lld,\"binary_object_size\":%lld}",
+        (long long)u.malloc_size, (long long)u.malloc_limit,
+        (long long)u.memory_used_size, (long long)u.malloc_count,
+        (long long)u.atom_count, (long long)u.atom_size,
+        (long long)u.str_count, (long long)u.str_size,
+        (long long)u.obj_count, (long long)u.obj_size,
+        (long long)u.prop_count, (long long)u.prop_size,
+        (long long)u.shape_count, (long long)u.shape_size,
+        (long long)u.mbjs_func_count, (long long)u.mbjs_func_size,
+        (long long)u.c_func_count, (long long)u.array_count,
+        (long long)u.fast_array_count, (long long)u.binary_object_count,
+        (long long)u.binary_object_size);
+    if (n < 0)
+        return cstr_result(ctx, "{}");
+    return rt.NewStringLen(ctx, buf, (size_t)n >= sizeof(buf) ? sizeof(buf) - 1 : (size_t)n);
+}
+
+static MBJSValue mn_is_live_object(MBJSContext *ctx, MBJSValueConst this_val,
+                                   int argc, MBJSValueConst *argv)
+{
+    RtSlot *r;
+    ValSlot *v;
+    (void)this_val;
+    if (argc < 2 || !(r = rt_slot(ctx, argv[0])) ||
+        !(v = value_slot(ctx, argv[1])) || !api.IsLiveObject)
+        return cap_unavailable(ctx, "MBJS_IsLiveObject unavailable");
+    return rt.NewBigUint64(ctx, api.IsLiveObject(r->rt, v->value) ? 1 : 0);
+}
+
+static MBJSValue mn_has_exception(MBJSContext *ctx, MBJSValueConst this_val,
+                                  int argc, MBJSValueConst *argv)
+{
+    CtxSlot *c;
+    (void)this_val;
+    if (argc < 1 || !(c = ctx_slot(ctx, argv[0])) || !api.HasException)
+        return cap_unavailable(ctx, "MBJS_HasException unavailable");
+    return rt.NewBigUint64(ctx, api.HasException(c->ctx) ? 1 : 0);
+}
+
+static MBJSValue mn_throw_value(MBJSContext *ctx, MBJSValueConst this_val,
+                                int argc, MBJSValueConst *argv)
+{
+    CtxSlot *c;
+    ValSlot *v;
+    (void)this_val;
+    if (argc < 2 || !(c = ctx_slot(ctx, argv[0])) ||
+        !(v = value_slot(ctx, argv[1])) || !api.Throw)
+        return cap_unavailable(ctx, "MBJS_Throw unavailable");
+    api.Throw(c->ctx, api.DupValue(c->ctx, v->value));
+    return rt.NewBigUint64(ctx, (uint64_t)(int64_t)-1);
+}
+
+static MBJSValue mn_to_bool(MBJSContext *ctx, MBJSValueConst this_val,
+                            int argc, MBJSValueConst *argv)
+{
+    CtxSlot *c;
+    ValSlot *v;
+    int r;
+    (void)this_val;
+    if (argc < 2 || !(c = ctx_slot(ctx, argv[0])) ||
+        !(v = value_slot(ctx, argv[1])) || !api.ToBool)
+        return cap_unavailable(ctx, "MBJS_ToBool unavailable");
+    r = api.ToBool(c->ctx, v->value);
+    return rt.NewBigUint64(ctx, (uint64_t)(int64_t)r);
+}
+
+static MBJSValue mn_to_number_value(MBJSContext *ctx, MBJSValueConst this_val,
+                                    int argc, MBJSValueConst *argv)
+{
+    CtxSlot *c;
+    ValSlot *v;
+    (void)this_val;
+    if (argc < 2 || !(c = ctx_slot(ctx, argv[0])) ||
+        !(v = value_slot(ctx, argv[1])) || !api.ToNumber)
+        return cap_unavailable(ctx, "MBJS_ToNumber unavailable");
+    return store_in(ctx, c, api.ToNumber(c->ctx, v->value));
+}
+
+static MBJSValue mn_to_string_value(MBJSContext *ctx, MBJSValueConst this_val,
+                                    int argc, MBJSValueConst *argv)
+{
+    CtxSlot *c;
+    ValSlot *v;
+    (void)this_val;
+    if (argc < 2 || !(c = ctx_slot(ctx, argv[0])) ||
+        !(v = value_slot(ctx, argv[1])) || !api.ToString)
+        return cap_unavailable(ctx, "MBJS_ToString unavailable");
+    return store_in(ctx, c, api.ToString(c->ctx, v->value));
+}
+
+static MBJSValue mn_to_index(MBJSContext *ctx, MBJSValueConst this_val,
+                             int argc, MBJSValueConst *argv)
+{
+    CtxSlot *c;
+    ValSlot *v;
+    uint64_t index = 0;
+    (void)this_val;
+    if (argc < 2 || !(c = ctx_slot(ctx, argv[0])) ||
+        !(v = value_slot(ctx, argv[1])) || !api.ToIndex)
+        return cap_unavailable(ctx, "MBJS_ToIndex unavailable");
+    if (api.ToIndex(c->ctx, &index, v->value) < 0)
+        return rt.NewBigUint64(ctx, (uint64_t)(int64_t)-1);
+    return rt.NewBigUint64(ctx, index);
+}
+
+static MBJSValue mn_atom_new(MBJSContext *ctx, MBJSValueConst this_val,
+                             int argc, MBJSValueConst *argv)
+{
+    CtxSlot *c;
+    const char *s;
+    MBJSAtom atom;
+    (void)this_val;
+    if (argc < 2 || !(c = ctx_slot(ctx, argv[0])) || !api.NewAtom)
+        return cap_unavailable(ctx, "MBJS_NewAtom unavailable");
+    s = arg_cstr(ctx, argv[1]);
+    if (!s)
+        return cap_unavailable(ctx, "MBJS_NewAtom: invalid name");
+    atom = api.NewAtom(c->ctx, s);
+    rt.FreeCString(ctx, s);
+    return rt.NewBigUint64(ctx, (uint64_t)atom);
+}
+
+static MBJSValue mn_atom_free(MBJSContext *ctx, MBJSValueConst this_val,
+                              int argc, MBJSValueConst *argv)
+{
+    CtxSlot *c;
+    uint64_t raw = 0;
+    (void)this_val;
+    if (argc < 2 || !(c = ctx_slot(ctx, argv[0])) || !api.FreeAtom ||
+        arg_u64(ctx, argv[1], &raw) < 0)
+        return cap_unavailable(ctx, "MBJS_FreeAtom unavailable");
+    api.FreeAtom(c->ctx, (MBJSAtom)raw);
+    return MBJS_UNDEFINED;
+}
+
+static MBJSValue mn_atom_name(MBJSContext *ctx, MBJSValueConst this_val,
+                              int argc, MBJSValueConst *argv)
+{
+    CtxSlot *c;
+    uint64_t raw = 0;
+    const char *s;
+    MBJSValue out;
+    (void)this_val;
+    if (argc < 2 || !(c = ctx_slot(ctx, argv[0])) || !api.AtomToCStringLen ||
+        arg_u64(ctx, argv[1], &raw) < 0)
+        return cap_unavailable(ctx, "MBJS_AtomToCStringLen unavailable");
+    s = api.AtomToCStringLen(c->ctx, NULL, (MBJSAtom)raw);
+    out = cstr_result(ctx, s);
+    if (s) rt.FreeCString(c->ctx, s);
+    return out;
+}
+
+static MBJSValue mn_invoke_atom(MBJSContext *ctx, MBJSValueConst this_val,
+                                int argc, MBJSValueConst *argv)
+{
+    CtxSlot *c;
+    ValSlot *fn;
+    MBJSValue args[16];
+    MBJSValue thisValue = MBJS_UNDEFINED;
+    uint64_t atom = 0;
+    int n;
+    int id;
+    (void)this_val;
+    if (argc < 3 || !(c = ctx_slot(ctx, argv[0])) ||
+        !(fn = value_slot(ctx, argv[1])) || !api.Invoke ||
+        arg_u64(ctx, argv[2], &atom) < 0)
+        return cap_unavailable(ctx, "MBJS_Invoke unavailable");
+    if (argc > 3 && (id = value_slot_id(ctx, argv[3])) >= 0)
+        thisValue = g_values[id].value;
+    n = value_args(ctx, argc, argv, 4, args, 16);
+    if (n < 0)
+        return cap_unavailable(ctx, "MBJS_Invoke: bad argument");
+    return store_in(ctx, c, api.Invoke(c->ctx, thisValue, (MBJSAtom)atom, n,
+                                       n ? args : NULL));
+}
+
+static MBJSValue mn_call_constructor(MBJSContext *ctx, MBJSValueConst this_val,
+                                     int argc, MBJSValueConst *argv)
+{
+    CtxSlot *c;
+    ValSlot *fn;
+    MBJSValue args[16];
+    int n;
+    (void)this_val;
+    if (argc < 2 || !(c = ctx_slot(ctx, argv[0])) ||
+        !(fn = value_slot(ctx, argv[1])) || !api.CallConstructor)
+        return cap_unavailable(ctx, "MBJS_CallConstructor unavailable");
+    n = value_args(ctx, argc, argv, 2, args, 16);
+    if (n < 0)
+        return cap_unavailable(ctx, "MBJS_CallConstructor: bad argument");
+    return store_in(ctx, c, api.CallConstructor(c->ctx, fn->value, n,
+                                                n ? args : NULL));
+}
+
+static MBJSValue mn_call_constructor2(MBJSContext *ctx, MBJSValueConst this_val,
+                                      int argc, MBJSValueConst *argv)
+{
+    CtxSlot *c;
+    ValSlot *fn;
+    ValSlot *newTarget;
+    MBJSValue args[16];
+    int n;
+    (void)this_val;
+    if (argc < 3 || !(c = ctx_slot(ctx, argv[0])) ||
+        !(fn = value_slot(ctx, argv[1])) ||
+        !(newTarget = value_slot(ctx, argv[2])) || !api.CallConstructor2)
+        return cap_unavailable(ctx, "MBJS_CallConstructor2 unavailable");
+    n = value_args(ctx, argc, argv, 3, args, 16);
+    if (n < 0)
+        return cap_unavailable(ctx, "MBJS_CallConstructor2: bad argument");
+    return store_in(ctx, c, api.CallConstructor2(c->ctx, fn->value,
+                                                 newTarget->value, n,
+                                                 n ? args : NULL));
+}
+
+static MBJSValue mn_eval2(MBJSContext *ctx, MBJSValueConst this_val,
+                          int argc, MBJSValueConst *argv)
+{
+    CtxSlot *c;
+    MBJSEvalOptions opts;
+    MBJSValue out;
+    const char *source;
+    const char *filename = NULL;
+    char *buf;
+    int flags = 0;
+    int line = 1;
+    (void)this_val;
+    if (argc < 2 || !(c = ctx_slot(ctx, argv[0])) || !api.Eval2)
+        return cap_unavailable(ctx, "MBJS_Eval2 unavailable");
+    source = arg_cstr(ctx, argv[1]);
+    if (!source)
+        return cap_unavailable(ctx, "MBJS_Eval2: invalid source");
+    if (argc > 2) filename = arg_cstr(ctx, argv[2]);
+    if (argc > 3) arg_int(ctx, argv[3], &flags);
+    if (argc > 4) arg_int(ctx, argv[4], &line);
+    buf = nul_copy(source, NULL);
+    rt.FreeCString(ctx, source);
+    if (!buf) {
+        if (filename) rt.FreeCString(ctx, filename);
+        return cap_unavailable(ctx, "MBJS_Eval2: out of memory");
+    }
+    opts.version = MBJS_EVAL_OPTIONS_VERSION;
+    opts.eval_flags = flags;
+    opts.filename = filename;
+    opts.line_num = line;
+    out = api.Eval2(c->ctx, buf, strlen(buf), &opts);
+    free(buf);
+    if (filename) rt.FreeCString(ctx, filename);
+    return store_in(ctx, c, out);
+}
+
+static MBJSValue mn_eval_function(MBJSContext *ctx, MBJSValueConst this_val,
+                                  int argc, MBJSValueConst *argv)
+{
+    CtxSlot *c;
+    ValSlot *fn;
+    (void)this_val;
+    if (argc < 2 || !(c = ctx_slot(ctx, argv[0])) ||
+        !(fn = value_slot(ctx, argv[1])) || !api.EvalFunction)
+        return cap_unavailable(ctx, "MBJS_EvalFunction unavailable");
+    return store_in(ctx, c, api.EvalFunction(c->ctx,
+        api.DupValue(c->ctx, fn->value)));
+}
+
+static MBJSValue mn_eval_this(MBJSContext *ctx, MBJSValueConst this_val,
+                              int argc, MBJSValueConst *argv)
+{
+    CtxSlot *c;
+    ValSlot *self = NULL;
+    const char *source;
+    const char *filename = NULL;
+    char *buf;
+    MBJSValue out;
+    int flags = 0;
+    (void)this_val;
+    if (argc < 3 || !(c = ctx_slot(ctx, argv[0])) || !api.EvalThis)
+        return cap_unavailable(ctx, "MBJS_EvalThis unavailable");
+    if (argc > 1) self = value_slot(ctx, argv[1]);
+    source = arg_cstr(ctx, argv[2]);
+    if (!source)
+        return cap_unavailable(ctx, "MBJS_EvalThis: invalid source");
+    if (argc > 3) filename = arg_cstr(ctx, argv[3]);
+    if (argc > 4) arg_int(ctx, argv[4], &flags);
+    buf = nul_copy(source, NULL);
+    rt.FreeCString(ctx, source);
+    if (!buf) {
+        if (filename) rt.FreeCString(ctx, filename);
+        return cap_unavailable(ctx, "MBJS_EvalThis: out of memory");
+    }
+    out = api.EvalThis(c->ctx, self ? self->value : MBJS_UNDEFINED,
+                       buf, strlen(buf), filename, flags);
+    free(buf);
+    if (filename) rt.FreeCString(ctx, filename);
+    return store_in(ctx, c, out);
+}
+
+static MBJSValue mn_eval_this2(MBJSContext *ctx, MBJSValueConst this_val,
+                               int argc, MBJSValueConst *argv)
+{
+    CtxSlot *c;
+    ValSlot *self = NULL;
+    MBJSEvalOptions opts;
+    MBJSValue out;
+    const char *source;
+    const char *filename = NULL;
+    char *buf;
+    int flags = 0;
+    int line = 1;
+    (void)this_val;
+    if (argc < 3 || !(c = ctx_slot(ctx, argv[0])) || !api.EvalThis2)
+        return cap_unavailable(ctx, "MBJS_EvalThis2 unavailable");
+    if (argc > 1) self = value_slot(ctx, argv[1]);
+    source = arg_cstr(ctx, argv[2]);
+    if (!source)
+        return cap_unavailable(ctx, "MBJS_EvalThis2: invalid source");
+    if (argc > 3) filename = arg_cstr(ctx, argv[3]);
+    if (argc > 4) arg_int(ctx, argv[4], &flags);
+    if (argc > 5) arg_int(ctx, argv[5], &line);
+    buf = nul_copy(source, NULL);
+    rt.FreeCString(ctx, source);
+    if (!buf) {
+        if (filename) rt.FreeCString(ctx, filename);
+        return cap_unavailable(ctx, "MBJS_EvalThis2: out of memory");
+    }
+    opts.version = MBJS_EVAL_OPTIONS_VERSION;
+    opts.eval_flags = flags;
+    opts.filename = filename;
+    opts.line_num = line;
+    out = api.EvalThis2(c->ctx, self ? self->value : MBJS_UNDEFINED,
+                        buf, strlen(buf), &opts);
+    free(buf);
+    if (filename) rt.FreeCString(ctx, filename);
+    return store_in(ctx, c, out);
+}
+
+static MBJSValue mn_value_is_instance_of(MBJSContext *ctx, MBJSValueConst this_val,
+                                         int argc, MBJSValueConst *argv)
+{
+    CtxSlot *c;
+    ValSlot *v;
+    ValSlot *ctor;
+    (void)this_val;
+    if (argc < 3 || !(c = ctx_slot(ctx, argv[0])) ||
+        !(v = value_slot(ctx, argv[1])) ||
+        !(ctor = value_slot(ctx, argv[2])) || !api.IsInstanceOf)
+        return cap_unavailable(ctx, "MBJS_IsInstanceOf unavailable");
+    return rt.NewBigUint64(ctx, (uint64_t)(int64_t)
+        api.IsInstanceOf(c->ctx, v->value, ctor->value));
+}
+
+static MBJSValue mn_value_is_equal(MBJSContext *ctx, MBJSValueConst this_val,
+                                   int argc, MBJSValueConst *argv)
+{
+    CtxSlot *c;
+    ValSlot *a;
+    ValSlot *b;
+    (void)this_val;
+    if (argc < 3 || !(c = ctx_slot(ctx, argv[0])) ||
+        !(a = value_slot(ctx, argv[1])) ||
+        !(b = value_slot(ctx, argv[2])) || !api.IsEqual)
+        return cap_unavailable(ctx, "MBJS_IsEqual unavailable");
+    return rt.NewBigUint64(ctx, (uint64_t)(int64_t)
+        api.IsEqual(c->ctx, a->value, b->value));
+}
+
+static MBJSValue mn_value_is_strict_equal(MBJSContext *ctx, MBJSValueConst this_val,
+                                          int argc, MBJSValueConst *argv)
+{
+    CtxSlot *c;
+    ValSlot *a;
+    ValSlot *b;
+    (void)this_val;
+    if (argc < 3 || !(c = ctx_slot(ctx, argv[0])) ||
+        !(a = value_slot(ctx, argv[1])) ||
+        !(b = value_slot(ctx, argv[2])) || !api.IsStrictEqual)
+        return cap_unavailable(ctx, "MBJS_IsStrictEqual unavailable");
+    return rt.NewBigUint64(ctx, api.IsStrictEqual(c->ctx, a->value, b->value) ? 1 : 0);
+}
+
+static MBJSValue mn_value_is_same_value(MBJSContext *ctx, MBJSValueConst this_val,
+                                        int argc, MBJSValueConst *argv)
+{
+    CtxSlot *c;
+    ValSlot *a;
+    ValSlot *b;
+    (void)this_val;
+    if (argc < 3 || !(c = ctx_slot(ctx, argv[0])) ||
+        !(a = value_slot(ctx, argv[1])) ||
+        !(b = value_slot(ctx, argv[2])) || !api.IsSameValue)
+        return cap_unavailable(ctx, "MBJS_IsSameValue unavailable");
+    return rt.NewBigUint64(ctx, api.IsSameValue(c->ctx, a->value, b->value) ? 1 : 0);
+}
+
+static MBJSValue mn_value_is_same_value_zero(MBJSContext *ctx, MBJSValueConst this_val,
+                                             int argc, MBJSValueConst *argv)
+{
+    CtxSlot *c;
+    ValSlot *a;
+    ValSlot *b;
+    (void)this_val;
+    if (argc < 3 || !(c = ctx_slot(ctx, argv[0])) ||
+        !(a = value_slot(ctx, argv[1])) ||
+        !(b = value_slot(ctx, argv[2])) || !api.IsSameValueZero)
+        return cap_unavailable(ctx, "MBJS_IsSameValueZero unavailable");
+    return rt.NewBigUint64(ctx, api.IsSameValueZero(c->ctx, a->value, b->value) ? 1 : 0);
+}
+
+static MBJSValue mn_own_property_names(MBJSContext *ctx, MBJSValueConst this_val,
+                                       int argc, MBJSValueConst *argv)
+{
+    CtxSlot *c;
+    ValSlot *obj;
+    MBJSPropertyEnum *tab = NULL;
+    uint32_t len = 0;
+    char buf[8192];
+    size_t pos = 0;
+    int flags = 0;
+    uint32_t i;
+    (void)this_val;
+    if (argc < 2 || !(c = ctx_slot(ctx, argv[0])) ||
+        !(obj = value_slot(ctx, argv[1])) || !api.GetOwnPropertyNames)
+        return cap_unavailable(ctx, "MBJS_GetOwnPropertyNames unavailable");
+    if (argc > 2) arg_int(ctx, argv[2], &flags);
+    if (api.GetOwnPropertyNames(c->ctx, &tab, &len, obj->value, flags) < 0)
+        return cap_unavailable(ctx, "MBJS_GetOwnPropertyNames failed");
+    buf[pos++] = '[';
+    for (i = 0; i < len && pos + 128 < sizeof(buf); i++) {
+        const char *name = NULL;
+        if (i) buf[pos++] = ',';
+        pos += (size_t)snprintf(buf + pos, sizeof(buf) - pos,
+                                "{\"atom\":%u,\"enumerable\":%s,\"name\":\"",
+                                (unsigned)tab[i].atom,
+                                tab[i].is_enumerable ? "true" : "false");
+        if (api.AtomToCStringLen)
+            name = api.AtomToCStringLen(c->ctx, NULL, tab[i].atom);
+        json_append_string(buf, sizeof(buf), &pos, name, name ? strlen(name) : 0);
+        if (name) rt.FreeCString(c->ctx, name);
+        if (pos + 2 < sizeof(buf)) {
+            buf[pos++] = '"'; buf[pos++] = '}';
+        }
+    }
+    if (pos + 1 < sizeof(buf)) buf[pos++] = ']';
+    if (tab && api.FreePropertyEnum) api.FreePropertyEnum(c->ctx, tab, len);
+    return rt.NewStringLen(ctx, buf, pos);
+}
+
+static MBJSValue mn_own_property(MBJSContext *ctx, MBJSValueConst this_val,
+                                 int argc, MBJSValueConst *argv)
+{
+    CtxSlot *c;
+    ValSlot *obj;
+    MBJSPropertyDescriptor desc;
+    uint64_t raw = 0;
+    int r;
+    int ctxId;
+    int valueId;
+    int getterId;
+    int setterId;
+    char buf[256];
+    (void)this_val;
+    if (argc < 3 || !(c = ctx_slot(ctx, argv[0])) ||
+        !(obj = value_slot(ctx, argv[1])) || !api.GetOwnProperty ||
+        arg_u64(ctx, argv[2], &raw) < 0)
+        return cap_unavailable(ctx, "MBJS_GetOwnProperty unavailable");
+    memset(&desc, 0, sizeof(desc));
+    r = api.GetOwnProperty(c->ctx, &desc, obj->value, (MBJSAtom)raw);
+    if (r <= 0)
+        return rt.NewBigUint64(ctx, (uint64_t)(int64_t)(r < 0 ? -1 : 0));
+    ctxId = (int)(int64_t)(uintptr_t)(c - g_ctxs);
+    valueId = value_store(ctxId, api.DupValue(c->ctx, desc.value));
+    getterId = value_store(ctxId, api.DupValue(c->ctx, desc.getter));
+    setterId = value_store(ctxId, api.DupValue(c->ctx, desc.setter));
+    snprintf(buf, sizeof(buf),
+             "{\"flags\":%d,\"valueSlot\":%d,\"getterSlot\":%d,\"setterSlot\":%d}",
+             desc.flags, valueId, getterId, setterId);
+    return cstr_result(ctx, buf);
+}
+
+static MBJSValue mn_free_property_enum(MBJSContext *ctx, MBJSValueConst this_val,
+                                       int argc, MBJSValueConst *argv)
+{
+    CtxSlot *c;
+    uint64_t ptr = 0;
+    uint64_t len = 0;
+    (void)this_val;
+    if (argc < 3 || !(c = ctx_slot(ctx, argv[0])) || !api.FreePropertyEnum ||
+        arg_u64(ctx, argv[1], &ptr) < 0 || arg_u64(ctx, argv[2], &len) < 0)
+        return cap_unavailable(ctx, "MBJS_FreePropertyEnum unavailable");
+    api.FreePropertyEnum(c->ctx, (MBJSPropertyEnum *)(uintptr_t)ptr, (uint32_t)len);
+    return MBJS_UNDEFINED;
+}
+
+static MBJSValue mn_promise_state(MBJSContext *ctx, MBJSValueConst this_val,
+                                  int argc, MBJSValueConst *argv)
+{
+    CtxSlot *c;
+    ValSlot *v;
+    (void)this_val;
+    if (argc < 2 || !(c = ctx_slot(ctx, argv[0])) ||
+        !(v = value_slot(ctx, argv[1])) || !api.PromiseState)
+        return cap_unavailable(ctx, "MBJS_PromiseState unavailable");
+    return rt.NewBigUint64(ctx, (uint64_t)(int64_t)
+        api.PromiseState(c->ctx, v->value));
+}
+
+static MBJSValue mn_promise_result(MBJSContext *ctx, MBJSValueConst this_val,
+                                   int argc, MBJSValueConst *argv)
+{
+    CtxSlot *c;
+    ValSlot *v;
+    (void)this_val;
+    if (argc < 2 || !(c = ctx_slot(ctx, argv[0])) ||
+        !(v = value_slot(ctx, argv[1])) || !api.PromiseResult)
+        return cap_unavailable(ctx, "MBJS_PromiseResult unavailable");
+    return store_in(ctx, c, api.PromiseResult(c->ctx, v->value));
+}
+
+static MBJSValue mn_is_promise(MBJSContext *ctx, MBJSValueConst this_val,
+                               int argc, MBJSValueConst *argv)
+{
+    ValSlot *v;
+    (void)this_val;
+    if (argc < 1 || !(v = value_slot(ctx, argv[0])) || !api.IsPromise)
+        return cap_unavailable(ctx, "MBJS_IsPromise unavailable");
+    return rt.NewBigUint64(ctx, api.IsPromise(v->value) ? 1 : 0);
+}
+
+static MBJSValue mn_new_settled_promise(MBJSContext *ctx, MBJSValueConst this_val,
+                                        int argc, MBJSValueConst *argv)
+{
+    CtxSlot *c;
+    ValSlot *v = NULL;
+    int reject = 0;
+    (void)this_val;
+    if (argc < 3 || !(c = ctx_slot(ctx, argv[0])) || !api.NewSettledPromise)
+        return cap_unavailable(ctx, "MBJS_NewSettledPromise unavailable");
+    if (argc > 1) v = value_slot(ctx, argv[2]);
+    if (argc > 1) arg_int(ctx, argv[1], &reject);
+    return store_in(ctx, c, api.NewSettledPromise(c->ctx, reject != 0,
+        v ? v->value : MBJS_UNDEFINED));
+}
+
+static MBJSValue mn_new_symbol(MBJSContext *ctx, MBJSValueConst this_val,
+                               int argc, MBJSValueConst *argv)
+{
+    CtxSlot *c;
+    const char *desc;
+    MBJSValue out;
+    int global = 0;
+    (void)this_val;
+    if (argc < 2 || !(c = ctx_slot(ctx, argv[0])) || !api.NewSymbol)
+        return cap_unavailable(ctx, "MBJS_NewSymbol unavailable");
+    desc = arg_cstr(ctx, argv[1]);
+    if (!desc)
+        return cap_unavailable(ctx, "MBJS_NewSymbol: invalid description");
+    if (argc > 2) arg_int(ctx, argv[2], &global);
+    out = api.NewSymbol(c->ctx, desc, global != 0);
+    rt.FreeCString(ctx, desc);
+    return store_in(ctx, c, out);
+}
+
+static MBJSValue mn_new_private_symbol(MBJSContext *ctx, MBJSValueConst this_val,
+                                       int argc, MBJSValueConst *argv)
+{
+    CtxSlot *c;
+    const char *desc;
+    MBJSValue out;
+    (void)this_val;
+    if (argc < 2 || !(c = ctx_slot(ctx, argv[0])) || !api.NewPrivateSymbol)
+        return cap_unavailable(ctx, "MBJS_NewPrivateSymbol unavailable");
+    desc = arg_cstr(ctx, argv[1]);
+    if (!desc)
+        return cap_unavailable(ctx, "MBJS_NewPrivateSymbol: invalid description");
+    out = api.NewPrivateSymbol(c->ctx, desc);
+    rt.FreeCString(ctx, desc);
+    return store_in(ctx, c, out);
+}
+
+#define MN_TAB_LEN 102
 
 static const MBJSCFunctionListEntry mn_tab[MN_TAB_LEN] = {
     MBJS_CFUNC_DEF("version", 0, mn_version),
@@ -1825,7 +2789,51 @@ static const MBJSCFunctionListEntry mn_tab[MN_TAB_LEN] = {
     MBJS_CFUNC_DEF("arrayBufferData", 2, mn_array_buffer_data),
     MBJS_CFUNC_DEF("arrayBufferSize", 2, mn_array_buffer_size),
     MBJS_CFUNC_DEF("valueGetProp", 3, mn_value_get_prop),
-    MBJS_CFUNC_DEF("valueSetProp", 4, mn_value_set_prop)
+    MBJS_CFUNC_DEF("valueSetProp", 4, mn_value_set_prop),
+    MBJS_CFUNC_DEF("packageName", 0, mn_package_name),
+    MBJS_CFUNC_DEF("baseVersion", 0, mn_base_version),
+    MBJS_CFUNC_DEF("baseDate", 0, mn_base_date),
+    MBJS_CFUNC_DEF("runtimeSetInfo", 2, mn_runtime_set_info),
+    MBJS_CFUNC_DEF("gcThreshold", 1, mn_gc_threshold),
+    MBJS_CFUNC_DEF("setGcThreshold", 2, mn_set_gc_threshold),
+    MBJS_CFUNC_DEF("runtimeUpdateStackTop", 1, mn_runtime_update_stack_top),
+    MBJS_CFUNC_DEF("runGC", 1, mn_run_gc),
+    MBJS_CFUNC_DEF("dumpFlags", 1, mn_dump_flags),
+    MBJS_CFUNC_DEF("setDumpFlags", 2, mn_set_dump_flags),
+    MBJS_CFUNC_DEF("runtimeOpaque", 1, mn_runtime_opaque),
+    MBJS_CFUNC_DEF("setRuntimeOpaque", 2, mn_set_runtime_opaque),
+    MBJS_CFUNC_DEF("memoryUsage", 1, mn_memory_usage),
+    MBJS_CFUNC_DEF("isLiveObject", 2, mn_is_live_object),
+    MBJS_CFUNC_DEF("hasException", 1, mn_has_exception),
+    MBJS_CFUNC_DEF("throwValue", 2, mn_throw_value),
+    MBJS_CFUNC_DEF("toBool", 2, mn_to_bool),
+    MBJS_CFUNC_DEF("toNumberValue", 2, mn_to_number_value),
+    MBJS_CFUNC_DEF("toStringValue", 2, mn_to_string_value),
+    MBJS_CFUNC_DEF("toIndex", 2, mn_to_index),
+    MBJS_CFUNC_DEF("atomNew", 2, mn_atom_new),
+    MBJS_CFUNC_DEF("atomFree", 2, mn_atom_free),
+    MBJS_CFUNC_DEF("atomName", 2, mn_atom_name),
+    MBJS_CFUNC_DEF("invokeAtom", 20, mn_invoke_atom),
+    MBJS_CFUNC_DEF("callConstructor", 18, mn_call_constructor),
+    MBJS_CFUNC_DEF("callConstructor2", 19, mn_call_constructor2),
+    MBJS_CFUNC_DEF("eval2", 5, mn_eval2),
+    MBJS_CFUNC_DEF("evalFunction", 2, mn_eval_function),
+    MBJS_CFUNC_DEF("evalThis", 5, mn_eval_this),
+    MBJS_CFUNC_DEF("evalThis2", 6, mn_eval_this2),
+    MBJS_CFUNC_DEF("valueIsInstanceOf", 3, mn_value_is_instance_of),
+    MBJS_CFUNC_DEF("valueIsEqual", 3, mn_value_is_equal),
+    MBJS_CFUNC_DEF("valueIsStrictEqual", 3, mn_value_is_strict_equal),
+    MBJS_CFUNC_DEF("valueIsSameValue", 3, mn_value_is_same_value),
+    MBJS_CFUNC_DEF("valueIsSameValueZero", 3, mn_value_is_same_value_zero),
+    MBJS_CFUNC_DEF("ownPropertyNames", 3, mn_own_property_names),
+    MBJS_CFUNC_DEF("ownProperty", 3, mn_own_property),
+    MBJS_CFUNC_DEF("freePropertyEnum", 3, mn_free_property_enum),
+    MBJS_CFUNC_DEF("promiseState", 2, mn_promise_state),
+    MBJS_CFUNC_DEF("promiseResult", 2, mn_promise_result),
+    MBJS_CFUNC_DEF("isPromise", 1, mn_is_promise),
+    MBJS_CFUNC_DEF("newSettledPromise", 3, mn_new_settled_promise),
+    MBJS_CFUNC_DEF("newSymbol", 3, mn_new_symbol),
+    MBJS_CFUNC_DEF("newPrivateSymbol", 2, mn_new_private_symbol)
 };
 
 static int mn_mod_init(MBJSContext *ctx, MBJSModuleDef *m)

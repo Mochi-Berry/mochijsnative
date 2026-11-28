@@ -5,11 +5,11 @@ extern "C" {
 #endif
 
 /* ABI for mochijsnative — engine plugin. Entry point: mbjs_init_module().
-   Version 0.3.0 adds optional engine API capability probing plus array/object/
-   ArrayBuffer accessors on top of the MBC1 context/value handle ABI. */
+   Version 0.4.0 adds runtime state, atom, conversion, constructor, promise,
+   symbol and property-descriptor accessors on top of the MBC1 handle ABI. */
 
 #define MB_MOCHIJSNATIVE_ABI_VERSION "MBC1"
-#define MB_MOCHIJSNATIVE_MODULE_VERSION "0.3.0"
+#define MB_MOCHIJSNATIVE_MODULE_VERSION "0.4.0"
 
 #define MB_MOCHIJSNATIVE_CAP_ARRAY 1
 #define MB_MOCHIJSNATIVE_CAP_OBJECT 1
