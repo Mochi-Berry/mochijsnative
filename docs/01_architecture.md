@@ -1,26 +1,32 @@
 # 01 — Architecture
 
-`mochijsnative` is a **single package repo**. Installed by TGPM/npm it lands whole at
-`node_modules/mochijsnative`. There are no sub-modules inside — one root `manifest.json`
-describes the package; each layer carries its own `manifest.json` for the
-engine loader.
+`mochijsnative` is a **single package repo**. Installed by TGPM/npm it lands whole
+as `mochijsnative`. One root `manifest.json` describes the package; the module
+under repo-root `mochi_modules/mochijsnative/` carries its own manifest for the
+engine loader. `node_modules/` contains only compatibility shims plus the
+`mochinode` helper packages.
 
 ```
 mochijsnative/
 ├── package.json / package-lock.json   <- package manager (npm/TGPM)
-├── manifest.json                      <- package descriptor (root; replaces berry.json)
-├── CMakeLists.txt / Makefile          <- build plumbing (ENGINE_INC overridable)
+├── manifest.json                      <- package descriptor (root)
+├── CMakeLists.txt / Makefile          <- build plumbing (ENGINE_INC/MOCHI_INC/DYNALIB_DIR)
 ├── LICENSE / README.md / .gitignore
 ├── mochiberry/   svg/                 <- asset & documentation diagrams (no mascots)
 ├── docs/         01_architecture.md · 02_abi_reference.md · 03_sandbox_security.md
-├── node_modules/ manifest.json (layer js_face) + src/index.js + native/ + lib/
-└── mochi_modules/ manifest.json (layer native_core) + include/ + src/ + native/
-                  + script/ + lib/<m>_x86_64.dll
+├── mochi_modules/
+│   └── mochijsnative/                 <- root-level module (JS face + native)
+│       ├── manifest.json
+│       ├── script/{index,native,deep,build}.js
+│       ├── include/ · src/ · native/
+│       └── lib/mochijsnative_x86_64.dll
+├── node_modules/                      <- compat shims + mochinode helpers
+└── selftest/mochijsnative.js
 ```
 
 ## Loader contract (verified from engine source + disassembly)
 
-- a native plugin exports exactly one symbol: `mbjs_init_module`;
+- a native plugin exports `mbjs_init_module`;
 - the import specifier must end in `.dll` / `.so` / `.lbrct` for the loader
   to take the native path;
 - `MBJS_AddModuleExportList` is called inside `mbjs_init_module`,
@@ -33,19 +39,24 @@ mochijsnative/
 
 | field | value |
 |---|---|
-| status | `broken` |
-| runtime exports | 0 |
-| native binary | `mochi_modules/lib/mochijsnative_x86_64.dll` (58894 B) |
+| status | `verified` |
+| version | `0.3.0` |
+| runtime exports | 58 |
+| native binary | `mochi_modules/mochijsnative/lib/mochijsnative_x86_64.dll` |
+| selftest | 30/30 ALL OK on export-enabled `mbjs.new.exe` |
 
 ## Build
 
 ```sh
-make ENGINE_INC=/path/to/engine/native-dir    # dir containing mbjs.h + mbjs_runtime.h
-# or: cmake -DENGINE_INC=/path/to/engine/native-dir .
+make ENGINE_INC=E:/bcf/mochiberry \
+     MOCHI_INC=E:/libmochiberry/mochinode \
+     DYNALIB_DIR=E:/libmochiberry/libdynalib
+# or: cmake -DENGINE_INC=... -DMOCHI_INC=... -DDYNALIB_DIR=... .
 ```
 
 ## Use (JS)
 
 ```js
-import * as mochijsnative from 'mochijsnative';        // -> node_modules/src/index.js
+import * as mochijsnative from 'mochijsnative';
+// -> mochi_modules/mochijsnative/script/index.js
 ```

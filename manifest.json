@@ -1,21 +1,23 @@
 {
   "name": "mochijsnative",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "layer": "package",
-  "description": "AOT/JIT native probe helper \u2014 FAILS mbjs_call_module init on the current engine build",
+  "description": "Native-first meta-programming bridge for MochiBerry (JS to engine context/value/symbol APIs).",
   "status": "verified",
-  "entry": "./node_modules/src/index.js",
+  "entry": "./mochi_modules/mochijsnative/script/index.js",
   "layers": {
-    "js": "./node_modules/manifest.json",
-    "native": "./mochi_modules/manifest.json"
+    "js": "./mochi_modules/mochijsnative/script/index.js",
+    "native": "./mochi_modules/mochijsnative/manifest.json",
+    "compat": "./node_modules/manifest.json"
   },
   "abi_version": "MBC1",
   "native_entry": "mbjs_init_module",
   "runtime_exports": [],
   "build": {
     "engine_include": "$ENGINE_INC",
-    "lib_dir": "./mochi_modules/lib",
-    "output": "./mochi_modules/lib/mochijsnative_x86_64.dll",
-    "link_libs": []
+    "mochi_include": "$MOCHI_INC",
+    "dynalib_dir": "$DYNALIB_DIR",
+    "lib_dir": "./mochi_modules/mochijsnative/lib",
+    "output": "./mochi_modules/mochijsnative/lib/mochijsnative_x86_64.dll"
   }
 }

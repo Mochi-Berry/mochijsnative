@@ -4,7 +4,8 @@
  */
 import { Runtime, Context, valueFromJS, detectModule, hostBase, hostExport,
          exportNames, exportSignature, bitsToNumber, numberToBits,
-         version, engineVersion, abi } from '../node_modules/mochijsnative/index.js';
+         engineCaps, hasEngineCap, version, engineVersion, abi }
+    from '../mochi_modules/mochijsnative/script/index.js';
 
 const results = [];
 function check(name, cond) {
@@ -34,6 +35,32 @@ async function main() {
     check('Context.set/get global', ctx.eval('gx * 3').toNumber() === 21);
     check('Context.get Math is object', ctx.get('Math').type !== 'undefined');
     check('Context.jsonParse roundtrip', ctx.jsonParse('{"k":[1,2]}').json() === '{"k":[1,2]}');
+
+    /* enriched object/array API */
+    const caps = engineCaps();
+    check('engineCaps enumerates optional API',
+          Object.keys(caps).length >= 12 && Object.keys(caps).some(k => caps[k]));
+    check('hasEngineCap(NewArray) agrees', hasEngineCap('NewArray') === caps.NewArray);
+    if (caps.NewArray && caps.GetLength && caps.GetPropertyUint32) {
+        const arr = ctx.array('a', 'b', 'c');
+        check('Context.array + arrayLength', arr.arrayLength() === 3);
+        const second = arr.arrayGet(1);
+        check('Value.arrayGet', second.toStringValue() === 'b');
+        second.free();
+        arr.arraySet(2, 99);
+        const third = arr.arrayGet(2);
+        check('Value.arraySet', third.toNumber() === 99);
+        third.free();
+        arr.free();
+    }
+    if (caps.DefinePropertyValueStr) {
+        const obj = ctx.eval('({})');
+        check('Value.defineProp', obj.defineProp('tag', 'native') === true);
+        const tag = obj.getProp('tag');
+        check('defined prop readable', tag.toStringValue() === 'native');
+        tag.free();
+        obj.free();
+    }
 
     /* value marshalling */
     const vNum = valueFromJS(ctx, 42);

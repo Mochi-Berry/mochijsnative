@@ -1,0 +1,110 @@
+import { nativeHandle as native, version, engineVersion, abi, symbols } from './native.js';
+import { build, main } from './build.js';
+import { Value, valueFromJS, Context, Runtime, Jit, exportNames, exportSignature,
+         ENGINE_CAPS, engineCaps, hasEngineCap, detectModule,
+         bitsToNumber, numberToBits } from './deep.js';
+
+export { build, main };
+export { nativeHandle, version, engineVersion, abi, symbols } from './native.js';
+export { Value, valueFromJS, Context, Runtime, Jit, exportNames, exportSignature,
+         ENGINE_CAPS, engineCaps, hasEngineCap, detectModule,
+         bitsToNumber, numberToBits } from './deep.js';
+
+export function hostBase() {
+    return native.hostBase();
+}
+
+export function hostExport(name) {
+    return native.hostExport(String(name));
+}
+
+export function bind(name, signature = 'ptr()') {
+    return Number(native.bind(String(name), String(signature)));
+}
+
+export function call(id, ...args) {
+    return native.call(Number(id), ...args);
+}
+
+export function unbind(id) {
+    return native.unbind(Number(id));
+}
+
+export function ffi(name, signature = 'ptr()') {
+    const slot = bind(name, signature);
+    if (slot < 0) throw new Error('mochijsnative: cannot bind ' + name + ': ' + native.lastError());
+    const fn = (...args) => call(slot, ...args);
+    fn.id = slot;
+    fn.symbol = String(name);
+    fn.signature = String(signature);
+    fn.close = () => unbind(slot);
+    return fn;
+}
+
+export function callOnce(name, signature = 'ptr()', ...args) {
+    const fn = ffi(name, signature);
+    try {
+        return fn(...args);
+    } finally {
+        fn.close();
+    }
+}
+
+export function decodeF64Bits(bits) {
+    const view = new DataView(new ArrayBuffer(8));
+    view.setBigUint64(0, BigInt(bits), true);
+    return view.getFloat64(0, true);
+}
+
+export function lastError() {
+    return native.lastError();
+}
+
+export const mochiberry = {
+    version: () => engineVersion,
+    abi,
+    symbols,
+    host: (name, signature) => ffi(name, signature),
+    call: (name, signature, ...args) => callOnce(name, signature, ...args),
+    getVersion: () => {
+        const bits = callOnce('MBJS_GetVersion', 'ptr()');
+        return nativeResultString(bits);
+    }
+};
+
+function nativeResultString(bits) {
+    const p = BigInt(bits);
+    return p === 0n ? '' : '0x' + p.toString(16);
+}
+
+export default {
+    version,
+    engineVersion,
+    abi,
+    symbols,
+    hostBase,
+    hostExport,
+    bind,
+    call,
+    unbind,
+    ffi,
+    callOnce,
+    decodeF64Bits,
+    lastError,
+    nativeHandle: native,
+    mochiberry,
+    build,
+    main,
+    Value,
+    valueFromJS,
+    Context,
+    Runtime,
+    Jit,
+    exportNames,
+    exportSignature,
+    ENGINE_CAPS,
+    engineCaps,
+    hasEngineCap,
+    bitsToNumber,
+    numberToBits
+};

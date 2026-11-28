@@ -1,0 +1,12 @@
+{
+  "name": "dynalib",
+  "version": "0.1.0",
+  "description": "Dynamic loader API for SEVM: dynalib(file, reg_or_offset, symbol, abi_sig, opts)",
+  "type": "module",
+  "main": "index.js",
+  "files": ["index.js", "README.md", "LICENSE"],
+  "dependencies": {
+    "mochinode": "^0.1.0"
+  },
+  "license": "MIT"
+}

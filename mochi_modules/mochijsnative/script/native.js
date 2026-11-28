@@ -1,0 +1,7 @@
+import { require as mrequire, cwd } from '../../../node_modules/mochinode/index.js';
+
+export const nativeHandle = await mrequire('mochijsnative.dll', cwd());
+export const version = nativeHandle.version();
+export const engineVersion = nativeHandle.engineVersion();
+export const abi = JSON.parse(nativeHandle.abi());
+export const symbols = abi.symbols || {};
